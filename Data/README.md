@@ -1,10 +1,10 @@
-# 📚 Data Science - Chatbot Edukatif IPA SD
+#  Data Science - Chatbot Edukatif IPA SD
 **Coding Camp 2026 powered by DBS Foundation**
 **ID Tim: CC26-PSU312** | Tema: Accessible & Adaptive Learning
 
 ---
 
-## 📁 Struktur Folder
+##  Struktur Folder
 
 ```
 dashboard/
@@ -21,7 +21,7 @@ dashboard/
 
 ---
 
-## 🎯 Business Questions
+##  Business Questions
 
 1. Topik IPA apa yang paling banyak dibahas dalam dataset?
 2. Bagaimana distribusi panjang soal dan jawaban berdasarkan topik?
@@ -31,7 +31,7 @@ dashboard/
 
 ---
 
-## 🗂️ Data Dictionary
+##  Data Dictionary
 
 | Kolom | Tipe | Deskripsi |
 |-------|------|-----------|
@@ -46,7 +46,7 @@ dashboard/
 
 ---
 
-## 🚀 Cara Menjalankan
+##  Cara Menjalankan
 
 ### 1. Install Dependencies
 ```bash
@@ -60,6 +60,6 @@ streamlit run data_cleran/dashboard.py
 
 ---
 
-## 👥 Anggota Tim (Data Science)
+##  Anggota Tim (Data Science)
 
 
