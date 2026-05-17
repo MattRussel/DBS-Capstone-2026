@@ -48,17 +48,25 @@ dashboard/
 
 ##  Cara Menjalankan
 
-### 1. Install Dependencies
+### Buat venv
+```bash 
+python -m venv venv
+```
+
+### Aktifkan (Windows)
+```bash 
+venv\Scripts\activate
+```
+
+### Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Jalankan Dashboard
+### Jalankan Dashboard
 ```bash
 streamlit run data_cleran/dashboard.py
 ```
-
----
 
 ##  Anggota Tim (Data Science)
 
