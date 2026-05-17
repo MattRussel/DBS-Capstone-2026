@@ -1,0 +1,40 @@
+# Environment variables
+.env
+.env.*
+config.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Dataset cache
+.cache/
+tmp/
+
+# VS Code
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Logs
+*.log
+
+# Model files
+*.h5
+*.pt
+*.pth
+*.ckpt
+
+# Database
+*.db
+*.sqlite3
