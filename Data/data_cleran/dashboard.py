@@ -80,6 +80,7 @@ st.markdown(
             border-radius: 10px;
             padding: 12px 14px;
             font-size: 13px;
+            color: #000000;
             
             
         }
@@ -109,9 +110,7 @@ plt.rcParams.update(
     }
 )
 
-# ────────────────────────────────────────────────────────────
 # 1. DATA LOADER
-# ────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_data() -> pd.DataFrame:
     base_dir = Path(__file__).resolve().parent
@@ -160,9 +159,7 @@ def load_data() -> pd.DataFrame:
 
 df = load_data()
 
-# ────────────────────────────────────────────────────────────
 # 2. SIDEBAR FILTER
-# ────────────────────────────────────────────────────────────
 st.sidebar.image("https://cdn-icons-png.flaticon.com/128/2784/2784403.png", width=64)
 st.sidebar.title("🔬 Dashboard IPA SD")
 st.sidebar.caption("CC26-PSU312 — Coding Camp 2026")
@@ -187,18 +184,14 @@ df_fil = df[
     df["topik"].isin(sel_topik) & df["soal_len"].between(range_soal[0], range_soal[1])
 ].copy()
 
-# ────────────────────────────────────────────────────────────
 # 3. HEADER
-# ────────────────────────────────────────────────────────────
-st.title("📊 Dashboard Analisis Dataset Chatbot IPA SD")
+st.title("Dashboard Analisis Dataset Chatbot IPA SD")
 st.write(
     "Insight dari **datasoal_clean.csv** — pasangan soal, jawaban, contoh, dan konteks untuk IPA kelas 5."
 )
 st.divider()
 
-# ────────────────────────────────────────────────────────────
 # 4. METRICS
-# ────────────────────────────────────────────────────────────
 c1, c2, c3, c4, c5 = st.columns(5, gap="small")
 
 metrics = [
@@ -223,16 +216,13 @@ for col, val, lbl in metrics:
 st.divider()
 
 def show_fig(fig):
-    """Render figure safely so titles/labels are not clipped."""
     fig.set_constrained_layout(True)
     st.pyplot(fig, use_container_width=True, clear_figure=True)
     plt.close(fig)
 
-# ────────────────────────────────────────────────────────────
 # 5. TABS
-# ────────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["📌 Distribusi Topik", "📏 Panjang Teks", "🔍 Subtopik", "💡 Pola Pertanyaan", "✅ Kesiapan Data"]
+    ["Distribusi Topik", "Panjang Teks", "Subtopik", "Pola Pertanyaan", "Kesiapan Data"]
 )
 
 # TAB 1
@@ -477,18 +467,16 @@ with tab5:
     )
 
     st.divider()
-    st.subheader("📋 Eksplorasi data")
+    st.subheader("Eksplorasi data")
     n_sample = st.slider("Tampilkan n baris", 5, 50, 10)
     st.dataframe(
         df_fil[["topik", "subtopik", "soal", "jawaban", "konteks"]].head(n_sample),
         use_container_width=True,
     )
 
-# ────────────────────────────────────────────────────────────
 # 6. FOOTER
-# ────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
-    "📌 CC26-PSU312 · Coding Camp 2026 powered by DBS Foundation | "
+    "CC26-PSU312 · Coding Camp 2026 powered by DBS Foundation | "
     "Dataset: datasoal_clean.csv | Tech Stack: Python · Pandas · Matplotlib · Streamlit"
 )
