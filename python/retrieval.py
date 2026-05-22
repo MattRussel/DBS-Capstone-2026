@@ -5,7 +5,7 @@ import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
 from sentence_transformers import SentenceTransformer
-
+from topic_classifier import predict_topic
 # LOGGING
 logging.basicConfig(
     level=logging.INFO,
@@ -236,7 +236,13 @@ class RAGRetriever:
             query=query,
             top_k=1,
         )
+        topic_result = predict_topic(query)
 
+        log.info(
+            "Prediksi topik TensorFlow: %s | confidence=%.2f",
+            topic_result["topic"],
+            topic_result["confidence"],
+        )
         # NO RESULT
 
         if not results:
@@ -270,6 +276,11 @@ class RAGRetriever:
 
             return {
                 "answer": best["jawaban"],
+                "predicted_topic": topic_result["topic"],
+                "topic_confidence": round(
+                    topic_result["confidence"],
+                    4,
+                ),
                 "category": best["topik"],
                 "question_matched": best["soal"],
                 "similarity_score": round(
@@ -346,11 +357,9 @@ if __name__ == "__main__":
     retriever = RAGRetriever()
 
     test_questions = [
-        "Apa itu fotosintesis?",
-        "Bagaimana sistem pencernaan manusia?",
-        "Mengapa pelangi muncul?",
-        "Apa contoh adaptasi hewan?",
-        "Siapa presiden Indonesia?",
+        
+        "apa fungsi akar pada tumbuhan?",
+        
     ]
 
     for question in test_questions:
