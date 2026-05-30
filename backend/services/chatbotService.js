@@ -1,7 +1,7 @@
 // backend/services/chatbotService.js
 import * as chatbotRepository from '../repositories/chatbotRepository.js';
 
-// 🔗 URL API Publik yang dibuat oleh Tim AI Engineer via Ngrok
+// 🔗 URL API Publik Ngrok Tim AI Engineer (⚠️ Pastikan ini diganti jika tim AI restart Ngrok!)
 const AI_ENGINEER_API_URL = 'https://groin-multitude-earphone.ngrok-free.dev';
 
 export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) => {
@@ -20,26 +20,27 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
           'Accept': 'application/json'
         },
         body: JSON.stringify({ 
-          // 🧠 PROMPT ENGINEERING: Memaksa model RAG/LLM memuntahkan format Array JSON soal kuis
           message: `Buat kelompokkan 3 soal pilihan ganda tentang materi sains '${topik}' untuk anak SD. Berikan hasil akhir HARUS langsung berbentuk array JSON tanpa penjelasan kata-kata pembuka/penutup lain, dengan format struktur objek seperti ini: [{"soal": "...", "opsi": ["A...", "B...", "C...", "D..."], "jawaban_benar": "A"}].`,
           session_id: `quiz_user_${user_id}`
         })
       });
 
       if (!aiResponse.ok) {
-        throw new Error(`API FastAPI merespons dengan status: ${aiResponse.status}`);
+        throw new Error(`API FastAPI merespons dengan status: ${aiResponse.status} (Kemungkinan URL Ngrok Expired)`);
       }
 
       const aiData = await aiResponse.json();
-      
-      // 🟢 SINKRONISASI 1: Ambil teks jawaban dari properti '.answer' sesuai output asli FastAPI
-      const teksBalasanKuis = aiData.answer;
+      let teksBalasanKuis = aiData.answer;
 
       if (!teksBalasanKuis) {
         throw new Error("Respons teks kuis dari FastAPI kosong.");
       }
 
-      // 🧠 Mengubah teks string markdown/mentah LLM menjadi Array Objek JavaScript asli
+      // 🧠 SAFETY CLEANUP: Bersihkan karakter backtick ```json jika LLM mengirim format markdown
+      if (teksBalasanKuis.includes("```")) {
+        teksBalasanKuis = teksBalasanKuis.replace(/```json|```/g, "").strip();
+      }
+
       const arraySoalKuis = JSON.parse(teksBalasanKuis);
 
       return {
@@ -50,7 +51,7 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
     } catch (error) {
       console.error("❌ [Quiz Generation Error]: Gagal generate kuis lewat prompt chat:", error.message);
       
-      // Fallback Darurat agar game kuis anak tidak macet/stuck di layar
+      // Fallback Darurat agar modul kuis frontend tidak hang/stuck
       return {
         type: "QUIZ_DATA",
         content: [
@@ -70,7 +71,7 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
   try {
     console.log(`📡 Meneruskan chat ke API Publik Ngrok Tim AI untuk diproses...`);
 
-    // Kirim ke endpoint POST /chat milik tim AI sesuai ChatRequest schema FastAPI
+    // 1. Tembak API FastAPI AI Engineer terlebih dahulu
     const aiResponse = await fetch(`${AI_ENGINEER_API_URL}/chat`, {
       method: 'POST',
       headers: { 
@@ -84,21 +85,20 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
     });
 
     if (!aiResponse.ok) {
-      throw new Error(`API Tim AI merespons dengan status: ${aiResponse.status}`);
+      throw new Error(`API Tim AI merespons dengan status: ${aiResponse.status} (Kemungkinan URL Ngrok Expired)`);
     }
 
     const aiData = await aiResponse.json();
-    
-    // 🟢 SINKRONISASI 2: Ambil teks jawaban utama dari properti '.answer' FastAPI
     const balasanAI = aiData.answer || "Halo Ilmuwan Cilik!";
 
-    // 💾 SIMPAN KE SUPABASE: Manfaatkan kekayaan metadata dari output FastAPI kelompokmu!
+    // 2. 💾 SIMPAN KE SUPABASE (Hanya dipanggil JIKA fetch ke AI di atas sukses 200 OK)
+    console.log("⏳ [Supabase Insert] Menyimpan log obrolan sukses ke chatbot_history...");
     await chatbotRepository.saveChatMessage(user_id, pesan, balasanAI, {
-      topik: aiData.category || topik || null,                // Menangkap 'category' TiDB RAG
-      subtopik: aiData.subtopik || null,                      // Menangkap 'subtopik' TiDB RAG
-      konteks: aiData.question_matched || null,               // Menyimpan pertanyaan terdekat yang match
-      jenisPertanyaan: aiData.predicted_topic || null,        // Menyimpan hasil prediksi klasifikasi model TF
-      kompleksitas: aiData.similarity_score ? aiData.similarity_score.toString() : null // Nilai kedekatan semantik
+      topik: aiData.category || topik || null,
+      subtopik: aiData.subtopik || null,
+      konteks: aiData.question_matched || null,
+      jenisPertanyaan: aiData.predicted_topic || null,
+      kompleksitas: aiData.similarity_score ? aiData.similarity_score.toString() : null
     });
 
     return {
@@ -107,8 +107,9 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
     };
 
   } catch (error) {
-    console.error("❌ [Chatbot Service Error]:", error);
+    console.error("❌ [Chatbot Service Error]:", error.message);
     
+    // Balasan Fallback pintar jika server python / ngrok mati di tengah jalan
     const balasanFallback = `Halo Ilmuwan Cilik! 👋 Profesor Cerdas sedang merapikan laboratorium jurnal sains dulu. Yuk coba kembali sesaat lagi atau selesaikan misi yang lain! 🚀`;
     return {
       type: "CHAT_TEXT",
