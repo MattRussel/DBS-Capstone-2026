@@ -317,6 +317,90 @@ class RAGRetriever:
             "similarity_score": round(1 - best["distance"], 4),
         }
 
+    def get_quiz_questions(self, topik, limit=3):
+        self._ensure_connection()
+        
+        # Cari soal yang topiknya mengandung kata kunci topik
+        self.cursor.execute(
+            """
+            SELECT soal, jawaban FROM knowledge
+            WHERE topik LIKE %s OR subtopik LIKE %s
+            ORDER BY RAND()
+            LIMIT %s
+            """,
+            (f"%{topik}%", f"%{topik}%", limit),
+        )
+        rows = self.cursor.fetchall()
+        
+        # Jika tidak ditemukan topik tersebut, ambil acak dari semua topik
+        if not rows:
+            self.cursor.execute(
+                """
+                SELECT soal, jawaban FROM knowledge
+                ORDER BY RAND()
+                LIMIT %s
+                """,
+                (limit,),
+            )
+            rows = self.cursor.fetchall()
+            
+        # Jika database kosong sama sekali (atau error), return fallback
+        if not rows:
+            return [
+                {
+                    "soal": f"Materi kuis untuk topik '{topik}' sedang dipersiapkan oleh Tim AI kami! ✨",
+                    "opsi": ["A. Semangat", "B. Pantang Menyerah", "C. Sukses Capstone", "D. Kerja Bagus"],
+                    "jawaban_benar": "A"
+                }
+            ]
+            
+        # Ambil beberapa jawaban acak sebagai pengecoh (distractors)
+        self.cursor.execute("SELECT jawaban FROM knowledge ORDER BY RAND() LIMIT 30")
+        all_distractors = [r["jawaban"] for r in self.cursor.fetchall() if r["jawaban"]]
+        
+        quiz_questions = []
+        for row in rows:
+            correct_ans = row["jawaban"]
+            # Bersihkan dan potong jawaban jika terlalu panjang untuk dijadikan opsi
+            correct_ans_short = correct_ans.split("\n")[0][:120].strip()
+            if not correct_ans_short:
+                correct_ans_short = "Pernyataan yang tepat."
+
+            # Cari distractor yang tidak sama dengan jawaban benar
+            distractors = []
+            for d in all_distractors:
+                d_short = d.split("\n")[0][:120].strip()
+                if d_short and d_short != correct_ans_short and d_short not in distractors:
+                    distractors.append(d_short)
+            
+            # Jika distractor kurang, buat fallback
+            while len(distractors) < 3:
+                distractors.append(f"Pembahasan materi terkait {topik} bagian {len(distractors) + 1}.")
+                
+            distractors = distractors[:3]
+                
+            # Gabungkan dan acak opsi jawaban
+            options = [correct_ans_short] + distractors
+            random.shuffle(options)
+            
+            # Cari tahu indeks jawaban benar setelah diacak
+            correct_idx = options.index(correct_ans_short)
+            correct_letter = ["A", "B", "C", "D"][correct_idx]
+            
+            # Format opsi: A. bla bla, B. bla bla, dst.
+            formatted_options = []
+            for i, opt in enumerate(options):
+                letter = ["A", "B", "C", "D"][i]
+                formatted_options.append(f"{letter}. {opt}")
+                
+            quiz_questions.append({
+                "soal": row["soal"],
+                "opsi": formatted_options,
+                "jawaban_benar": correct_letter
+            })
+            
+        return quiz_questions
+
 
 # ---------------------------------------------------------------------------
 # Load semua artefak saat startup
@@ -355,11 +439,17 @@ app = FastAPI(title="Chatbot IPA SD", version="2.0")
 class ChatRequest(BaseModel):
     message:    str
     session_id: str = "default"
+    history:    list = []
 
 
 class ModerationRequest(BaseModel):
     text:       str
     session_id: str = "default"
+
+
+class QuizRequest(BaseModel):
+    topik:       str
+    jumlah_soal: int = 3
 
 
 @app.get("/")
@@ -391,6 +481,8 @@ def chat(req: ChatRequest):
     if mod_result["status"] == "cooldown":
         return {
             "answer":          mod_result["message"],
+            "reply_message":   mod_result["message"],
+            "response":        mod_result["message"],
             "moderation":      mod_result,
             "category":        None,
             "predicted_topic": None,
@@ -416,6 +508,8 @@ def chat(req: ChatRequest):
 
     return {
         "answer":           answer,
+        "reply_message":    answer,
+        "response":         answer,
         "category":         result["category"],
         "subtopik":         result.get("subtopik", ""),
         "predicted_topic":  predicted_topic,
@@ -430,6 +524,17 @@ def chat(req: ChatRequest):
 @app.post("/moderation")
 def check_moderation(req: ModerationRequest):
     return moderator.check(req.text, req.session_id)
+
+
+@app.post("/generate-quiz")
+def generate_quiz(req: QuizRequest):
+    if not req.topik.strip():
+        raise HTTPException(status_code=422, detail="topik kosong")
+    
+    questions = retriever.get_quiz_questions(req.topik, req.jumlah_soal)
+    return {
+        "quiz_questions": questions
+    }
 
 
 if __name__ == "__main__":
