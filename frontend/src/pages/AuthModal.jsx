@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [activeTab, setActiveTab] = useState('login');
@@ -51,14 +52,14 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Mencegah reload halaman bawaan form browser
+    e.preventDefault(); 
     setErrorMessage('');
     setSuccessMessage('');
 
-    // 🛡️ VALIDASI PASSWORD MINIMAL 6 KARAKTER (Berlaku untuk Daftar maupun Masuk)
+    // 🛡️ VALIDASI PASSWORD MINIMAL 6 KARAKTER
     if (!formData.password || formData.password.length < 6) {
-      setErrorMessage('Waduh, kata sandi terlalu pendek! 🔑\nMinimal harus 6 karakter ya, biar akun Ilmuwan Cilik kamu tetap aman!');
-      return; // 🛑 Hentikan aliran kode di sini, jangan tembak server dulu
+      setErrorMessage('Waduh, kata sandi terlalu pendek! 🔑\nMinimal harus 6 karakter ya, biar akun kamu aman!');
+      return; 
     }
 
     try {
@@ -79,7 +80,7 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
         });
 
         if (response.data.success) {
-          setSuccessMessage(response.data.message || 'Registrasi sukses! ✨');
+          setSuccessMessage(response.data.message || 'Hore, Registrasi sukses! ✨');
           setTimeout(() => setActiveTab('login'), 2000);
         }
 
@@ -108,16 +109,28 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
       }
     } catch (error) {
       const serverMessage = error.response?.data?.message || 'Terjadi gangguan jaringan dengan server.';
+      const lowerCaseMessage = serverMessage.toLowerCase();
       
-      // ✨ DETEKSI AKURAT: Mencari substring "belum terdaftar" secara spesifik dari backend Supabase kita
-      if (activeTab === 'login' && serverMessage.toLowerCase().includes('belum terdaftar')) {
-        setErrorMessage(serverMessage);
+      // ✨ DETEKSI 1: Belum terdaftar (Saat Login)
+      if (activeTab === 'login' && lowerCaseMessage.includes('belum terdaftar')) {
+        setErrorMessage(serverMessage + '\nMari buat akun baru dulu yuk!');
         
-        // Otomatis memindahkan anak ke tab register dalam 2.5 detik agar interaktif
+        // Otomatis memindahkan ke tab register dalam 2.5 detik
         setTimeout(() => {
           setActiveTab('register');
         }, 2500);
-      } else {
+      } 
+      // ✨ DETEKSI 2: Email/Username sudah terpakai (Saat Daftar)
+      else if (activeTab === 'register' && (lowerCaseMessage.includes('sudah terdaftar') || lowerCaseMessage.includes('terpakai') || lowerCaseMessage.includes('already exist'))) {
+        setErrorMessage('Waduh, Email atau Username ini sudah pernah didaftarkan! 😅\nLangsung masuk aja yuk pakai akun ini.');
+        
+        // Otomatis memindahkan ke tab login dalam 3 detik
+        setTimeout(() => {
+          setActiveTab('login');
+        }, 3000);
+      } 
+      // Error server umum lainnya
+      else {
         setErrorMessage(serverMessage);
       }
     }
@@ -127,7 +140,8 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-[#2C1A0E]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto font-['Nunito']" onClick={onClose}>
-      <div className="bg-[#FAF7F2] rounded-[40px] sm:rounded-[50px] w-full max-w-md p-6 sm:p-8 lg:p-10 shadow-xl border border-[#D6CFC4]" onClick={(e) => e.stopPropagation()}>
+      
+      <div className="bg-[#FAF7F2] rounded-[40px] sm:rounded-[50px] w-full max-w-md p-6 sm:p-8 lg:p-10 shadow-xl border border-[#D6CFC4] relative" onClick={(e) => e.stopPropagation()}>
         
         {/* Header Bar */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-[#D6CFC4] bg-[#F5F0E8] p-4 rounded-[30px]">
@@ -135,19 +149,77 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
             <div className="w-12 h-12 bg-[#7A8C5C] rounded-full flex items-center justify-center text-[#FAF7F2] font-black text-2xl border-2 border-white">S</div>
             <h2 className="font-extrabold text-2xl text-[#2C1A0E]">SainsCerdas</h2>
           </div>
-          <button type="button" onClick={onClose} className="text-[#6B5C4E] hover:text-[#C4621D] p-2 rounded-full transition-colors">
+          <button type="button" onClick={onClose} className="text-[#6B5C4E] hover:text-[#C4621D] hover:bg-[#FDE8DC]/50 p-2 rounded-full transition-colors focus:outline-none">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
 
         {/* Tab Navigasi */}
         <div className="flex bg-[#F5F0E8] rounded-full p-1.5 mb-6 border-2 border-[#D6CFC4]">
-          <button type="button" onClick={() => setActiveTab('login')} className={`flex-1 text-center py-2.5 rounded-full text-sm font-semibold transition-all ${activeTab === 'login' ? 'bg-[#7A8C5C] text-[#FAF7F2] shadow-md' : 'text-[#6B5C4E]'}`}>Masuk</button>
-          <button type="button" onClick={() => setActiveTab('register')} className={`flex-1 text-center py-2.5 rounded-full text-sm font-semibold transition-all ${activeTab === 'register' ? 'bg-[#7A8C5C] text-[#FAF7F2] shadow-md' : 'text-[#6B5C4E]'}`}>Daftar</button>
+          <button type="button" onClick={() => setActiveTab('login')} className={`flex-1 text-center py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'login' ? 'bg-[#7A8C5C] text-[#FAF7F2] shadow-md' : 'text-[#6B5C4E] hover:text-[#2C1A0E]'}`}>Masuk</button>
+          <button type="button" onClick={() => setActiveTab('register')} className={`flex-1 text-center py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === 'register' ? 'bg-[#7A8C5C] text-[#FAF7F2] shadow-md' : 'text-[#6B5C4E] hover:text-[#2C1A0E]'}`}>Daftar</button>
         </div>
 
-        {errorMessage && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-center font-bold whitespace-pre-line">⚠️ {errorMessage}</div>}
-        {successMessage && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-xs rounded-xl text-center font-bold">🎉 {successMessage}</div>}
+        {/* 🚨 AREA POP-UP ERROR & SUCCESS (UPGRADED ANIMATION) 🚨 */}
+        <div className="relative w-full z-10">
+          <AnimatePresence mode="wait">
+            {errorMessage && (
+              <motion.div 
+                key="error-box"
+                // Posisi awal
+                initial={{ opacity: 0, y: -20, scale: 0.8 }} 
+                // Animasi masuk ditambah efek SHAKE sumbu X (kiri-kanan)
+                animate={{ 
+                  opacity: 1, 
+                  y: 0, 
+                  scale: 1,
+                  x: [0, -8, 8, -8, 8, 0] // ⬅️ Efek geleng-geleng
+                }} 
+                exit={{ opacity: 0, scale: 0.9, y: -10 }} 
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 500, 
+                  damping: 25,
+                  x: { duration: 0.4 } // Kecepatan gelengnya
+                }}
+                className="mb-5 p-4 bg-[#FDE8DC] border border-[#C4621D] text-[#2C1A0E] text-xs sm:text-sm rounded-2xl font-bold whitespace-pre-line shadow-md flex items-start gap-3"
+              >
+                <motion.span 
+                  // Bikin icon warning kedap-kedip pelan
+                  animate={{ rotate: [0, -15, 15, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.5, repeatDelay: 1 }}
+                  className="text-xl leading-none"
+                >
+                  ⚠️
+                </motion.span>
+                <span className="leading-relaxed">{errorMessage}</span>
+              </motion.div>
+            )}
+            
+            {successMessage && (
+              <motion.div 
+                key="success-box"
+                // Datang dari bawah biar kesannya melompat kegirangan
+                initial={{ opacity: 0, y: 30, scale: 0.5 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.8 }}
+                // Settingan spring yang lebih "Bouncy" (damping diturunkan)
+                transition={{ type: "spring", stiffness: 300, damping: 12, mass: 0.8 }}
+                className="mb-5 p-4 bg-[#F5F0E8] border border-[#7A8C5C] text-[#2C1A0E] text-xs sm:text-sm rounded-2xl font-bold shadow-md flex items-center gap-3"
+              >
+                <motion.span 
+                  // Bikin icon party popper-nya lompat-lompat kecil
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ repeat: Infinity, duration: 1 }}
+                  className="text-xl leading-none"
+                >
+                  🎉
+                </motion.span>
+                <span>{successMessage}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {activeTab === 'register' && (
@@ -155,19 +227,19 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
               {/* Nama Lengkap */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#6B5C4E]">Nama Lengkap Kamu</label>
-                <input type="text" name="nama_lengkap" value={formData.nama_lengkap} onChange={handleChange} placeholder="Contoh: Budi Santoso" className="w-full px-4 py-2.5 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" required />
+                <input type="text" name="nama_lengkap" value={formData.nama_lengkap} onChange={handleChange} placeholder="Contoh: Budi Santoso" className="w-full px-5 py-3 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C] focus:ring-1 focus:ring-[#7A8C5C] transition-all" required />
               </div>
 
               {/* Email */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#6B5C4E]">Alamat Email</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="budi@example.com" className="w-full px-4 py-2.5 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" required={activeTab === 'register'} />
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="budi@example.com" className="w-full px-5 py-3 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C] focus:ring-1 focus:ring-[#7A8C5C] transition-all" required={activeTab === 'register'} />
               </div>
               
               {/* Peran Akun */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#6B5C4E]">Peran Akun</label>
-                <select name="role" value={formData.role} onChange={handleChange} className="w-full px-4 py-2.5 border border-[#D6CFC4] rounded-xl bg-white text-sm font-bold text-[#2C1A0E] outline-none focus:border-[#7A8C5C]">
+                <select name="role" value={formData.role} onChange={handleChange} className="w-full px-5 py-3 border border-[#D6CFC4] rounded-xl bg-white text-sm font-bold text-[#2C1A0E] outline-none focus:border-[#7A8C5C] focus:ring-1 focus:ring-[#7A8C5C] transition-all cursor-pointer">
                   <option value="anak">👦 Anak (Siswa Sekolah Dasar)</option>
                   <option value="orangtua">👨‍👩‍👦 Orang Tua (Wali Murid)</option>
                 </select>
@@ -177,7 +249,7 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
               {formData.role === 'anak' && (
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-[#6B5C4E]">ID Hubung Orang Tua (Opsional)</label>
-                  <input type="number" name="parent_id" value={formData.parent_id} onChange={handleChange} placeholder="Masukkan angka ID user orang tua jika ada..." className="w-full px-4 py-2.5 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" />
+                  <input type="number" name="parent_id" value={formData.parent_id} onChange={handleChange} placeholder="Masukkan ID user orang tua jika ada..." className="w-full px-5 py-3 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C] focus:ring-1 focus:ring-[#7A8C5C] transition-all" />
                 </div>
               )}
             </>
@@ -186,20 +258,19 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
           {/* Username */}
           <div className="space-y-1">
             <label className="text-xs font-bold text-[#6B5C4E]">Nama Pengguna (Username)</label>
-            <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder="Masukkan nama pengguna..." className="w-full px-4 py-2.5 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" required />
+            <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder="Masukkan nama pengguna..." className="w-full px-5 py-3 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C] focus:ring-1 focus:ring-[#7A8C5C] transition-all" required />
           </div>
 
           {/* Password */}
           <div className="space-y-1 relative">
             <label className="text-xs font-bold text-[#6B5C4E]">Kata Sandi</label>
             <div className="relative">
-              {/* Ditambahkan attribute minLength="6" sebagai proteksi ganda bawaan HTML5 HTML */}
-              <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" minLength={6} className="w-full px-4 py-2.5 pr-11 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" required />
+              <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" minLength={6} className="w-full px-5 py-3 pr-12 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C] focus:ring-1 focus:ring-[#7A8C5C] transition-all" required />
               
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)} 
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B5C4E] hover:text-[#7A8C5C] transition-colors p-1"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B5C4E] hover:text-[#C4621D] hover:bg-[#FDE8DC] transition-colors p-1.5 rounded-full"
               >
                 {showPassword ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -216,20 +287,20 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
           </div>
 
           {activeTab === 'register' && (
-            <div className="flex items-start gap-2 pt-1">
-              <input type="checkbox" id="agreed" name="agreed" checked={formData.agreed} onChange={handleChange} className="w-4 h-4 mt-0.5 accent-[#7A8C5C]" />
-              <label htmlFor="agreed" className="text-xs text-[#6B5C4E] leading-relaxed select-none">Saya menyetujui semua aturan pengerjaan platform SainsCerdas.</label>
+            <div className="flex items-start gap-2.5 pt-2">
+              <input type="checkbox" id="agreed" name="agreed" checked={formData.agreed} onChange={handleChange} className="w-5 h-5 mt-0.5 border-2 border-[#D6CFC4] rounded-md accent-[#7A8C5C] cursor-pointer" />
+              <label htmlFor="agreed" className="text-xs text-[#6B5C4E] leading-relaxed select-none cursor-pointer">Saya menyetujui semua aturan pengerjaan platform SainsCerdas.</label>
             </div>
           )}
 
           {/* Tombol Submit Utama */}
-          <button type="submit" className="w-full bg-[#2C1A0E] text-[#FAF7F2] font-bold py-3 rounded-full mt-2 hover:bg-[#3B2314] transition-all shadow-md text-sm tracking-wide">
+          <button type="submit" className="w-full bg-[#2C1A0E] text-[#FAF7F2] font-extrabold py-3.5 rounded-full mt-4 hover:bg-[#3B2314] transition-all shadow-md text-sm tracking-wide focus:ring-4 focus:ring-[#7A8C5C]/30 outline-none">
             {activeTab === 'login' ? '🚀 MASUK SEKARANG' : '✨ BUAT AKUN BARU'}
           </button>
         </form>
 
         {/* Divider */}
-        <div className="flex items-center gap-3 my-4">
+        <div className="flex items-center gap-4 my-6">
           <div className="flex-1 h-0.5 bg-[#D6CFC4]/60 rounded-full"></div>
           <span className="text-[10px] text-[#6B5C4E] font-bold uppercase tracking-wider">Atau</span>
           <div className="flex-1 h-0.5 bg-[#D6CFC4]/60 rounded-full"></div>
@@ -239,7 +310,7 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
         <button 
           type="button" 
           onClick={handleGuestLogin}
-          className="w-full bg-white border-2 border-[#D6CFC4] text-[#6B5C4E] font-bold py-2.5 rounded-full shadow-sm hover:border-[#7A8C5C] hover:text-[#7A8C5C] transition-all text-sm"
+          className="w-full bg-white border-2 border-[#D6CFC4] text-[#2C1A0E] font-bold py-3 rounded-full shadow-sm hover:border-[#7A8C5C] hover:bg-[#FAF7F2] transition-all text-sm focus:ring-4 focus:ring-[#D6CFC4]/30 outline-none"
         >
           🎮 Jelajahi Sebagai Tamu (Guest Mode)
         </button>

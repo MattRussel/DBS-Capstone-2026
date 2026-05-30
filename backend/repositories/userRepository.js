@@ -11,7 +11,8 @@ export const findUserByUsernameOrEmail = async (username, email) => {
       .from('users')
       .select('*')
       .or(`username.eq.${username},email.eq.${email}`)
-      .maybeSingle(); // Mengembalikan 1 objek data, atau null jika tidak ketemu
+      .limit(1) // 🛡️ PROTEKSI 1: Batasi hasil maksimal 1 agar maybeSingle() tidak panik jika ada lebih dari 1 user yang cocok
+      .maybeSingle(); 
 
     if (error) throw error;
     return data;
@@ -30,7 +31,8 @@ export const findUserByUsername = async (username) => {
       .from('users')
       .select('*')
       .eq('username', username)
-      .maybeSingle(); // Mengembalikan 1 data objek user untuk dicocokkan password-nya di service
+      .limit(1) // 🛡️ Proteksi tambahan berjaga-jaga jika ada duplicate username di DB
+      .maybeSingle(); 
 
     if (error) throw error;
     return data;
@@ -53,17 +55,17 @@ export const createUser = async (userData) => {
         {
           username,
           email,
-          password_hash: passwordHash, // Menyesuaikan nama kolom snake_case di DB Supabase
+          password_hash: passwordHash, 
           role: role || 'anak',
           parent_id: parentId ? parseInt(parentId, 10) : null,
           nama_lengkap: namaLengkap || 'Siswa Cerdas'
         }
       ])
-      .select() // 🌟 PENTING: Wajib dipanggil di Supabase agar mengembalikan data yang baru masuk
-      .single();
+      .select() 
+      .maybeSingle(); // 🛡️ PROTEKSI 2: Ganti .single() jadi .maybeSingle() untuk menghindari error 0 rows karena kebijakan RLS Supabase
 
     if (error) throw error;
-    return data; // Mengembalikan objek user yang sukses terdaftar (termasuk ID otomatis dari DB)
+    return data; 
   } catch (error) {
     console.error("❌ [User Repository] Gagal menyimpan user baru:", error.message);
     throw error;
