@@ -1,22 +1,24 @@
 // backend/repositories/chatbotRepository.js
-import supabase from '../config/db.js'; // Menyesuaikan dengan lokasi db.js kamu yang baru
+import supabase from '../config/db.js';
 
 /**
  * 📜 Ambil riwayat chat terakhir anak
- * Diubah agar mengambil kolom message dan bot_response untuk memori konteks AI
  */
-export const getChatHistoryByUserId = async (userId, limit = 10) => {
+export const getChatHistoryByUserId = async (user_id, limit = 10) => {
   try {
+    // 🟢 PERBAIKAN 1: Gunakan nama parameter user_id agar konsisten dengan service
     const { data, error } = await supabase
       .from('chatbot_history')
       .select('message, bot_response, topik, subtopik')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false }) // Ambil yang paling baru dulu
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
 
-    // Balikkan urutannya agar kronologis (dari pesan lama ke pesan baru) saat dibaca Flask AI
+    // 🟢 PERBAIKAN 2: Antisipasi safety check jika data belum ada (null/kosong) agar tidak crash saat .reverse()
+    if (!data || data.length === 0) return [];
+
     return data.reverse();
   } catch (error) {
     console.error("❌ [Chatbot Repository] Gagal mengambil riwayat obrolan:", error.message);
@@ -25,20 +27,24 @@ export const getChatHistoryByUserId = async (userId, limit = 10) => {
 };
 
 /**
- * 💾 Catat obrolan baru langsung berpasangan (Pesan Anak + Jawaban Bot) ke Supabase
+ * 💾 Catat obrolan baru langsung berpasangan ke Supabase
  */
-export const saveChatMessage = async (userId, message, botResponse, metadata = {}) => {
+export const saveChatMessage = async (user_id, message, botResponse, metadata = {}) => {
   try {
     const { topik, subtopik, konteks, jenisPertanyaan, kompleksitas } = metadata;
+
+    // 🧪 LOGGING SANITY CHECK: Intip apa saja data yang mau dikirim ke Supabase via terminal backend
+    console.log("⏳ [Supabase Insert] Mencoba menyimpan ke chatbot_history...");
+    console.log(`Detail Data -> User: ${user_id}, Topik: ${topik}`);
 
     const { data, error } = await supabase
       .from('chatbot_history')
       .insert([
         {
-          user_id: parseInt(userId, 10),
-          message: message,                     // Ketikan dari si anak
-          bot_response: botResponse,             // Jawaban pintar dari Flask AI
-          topik: topik || null,                 // Diikat via FK ke knowledge(topik)
+          user_id: parseInt(user_id, 10), // 🟢 Gunakan user_id yang sinkron
+          message: message,
+          bot_response: botResponse,
+          topik: topik || null, // ⚠️ Pastikan teks ini ada di tabel knowledge agar FK tidak jebol
           subtopik: subtopik || null,
           konteks: konteks || null,
           jenis_pertanyaan: jenisPertanyaan || null,
@@ -46,10 +52,17 @@ export const saveChatMessage = async (userId, message, botResponse, metadata = {
         }
       ])
       .select()
-      .single();
+      .maybeSingle(); // 🟢 Lebih aman menggunakan maybeSingle() jika ada potensi null / kegagalan constraint
 
-    if (error) throw error;
-    return data; // Mengembalikan log chat yang berhasil disimpan
+    if (error) {
+      // 🚨 Tangkap secara spesifik jika masalahnya ada di Foreign Key
+      if (error.code === '23503') {
+        console.error("❌ [Database Error] Gagal simpan karena foreign key constraint! Topik '" + topik + "' tidak terdaftar di tabel knowledge.");
+      }
+      throw error;
+    }
+    
+    return data;
   } catch (error) {
     console.error("❌ [Chatbot Repository] Gagal menyimpan log pesan chatbot:", error.message);
     throw error;
