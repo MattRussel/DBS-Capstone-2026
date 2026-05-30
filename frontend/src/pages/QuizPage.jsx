@@ -19,7 +19,7 @@ const QuizPage = () => {
 
   const userId = localStorage.getItem('student_id') || 1;
 
-  // 📋 MASTER DATA: 15 Topik Resmi Lengkap Sesuai dataclean_revisi.csv
+  // 📋 MASTER DATA: 15 Topik Resmi Lengkap Sesuai Kurikulum SainsCerdas
   const infoMateriKuis = {
     adaptasi: {
       tag: "adaptasi makhluk hidup",
@@ -44,7 +44,7 @@ const QuizPage = () => {
     pencernaan: {
       tag: "alat pencernaan dan makanan",
       judul: "🍔 Alat Pencernaan & Makanan",
-      deskripsi: "Uji pengetahuanmu tentang bagaimana lambung and usus mengolah makanan sehat menjadi energi tubuh."
+      deskripsi: "Uji pengetahuanmu tentang bagaimana lambung dan usus mengolah makanan sehat menjadi energi tubuh."
     },
     benda: {
       tag: "benda dan sifatnya",
@@ -54,7 +54,7 @@ const QuizPage = () => {
     bumi_alam: {
       tag: "bumi dan peristiwa alam",
       judul: "🪐 Bumi & Peristiwa Alam",
-      deskripsi: "Temukan rahasia rotasi dan revolusi bumi yang menyebabkan adanya pergantian siang, malam, and musim."
+      deskripsi: "Temukan rahasia rotasi dan revolusi bumi yang menyebabkan adanya pergantian siang, malam, dan musim."
     },
     air: {
       tag: "air",
@@ -64,7 +64,7 @@ const QuizPage = () => {
     alat_tubuh: {
       tag: "alat tubuh manusia dan hewan",
       judul: "🦴 Alat Tubuh Manusia & Hewan",
-      deskripsi: "Pelajari sistem rangka tulang and fungsi otot sebagai penggerak utama tubuh makhluk hidup."
+      deskripsi: "Pelajari sistem rangka tulang dan fungsi otot sebagai penggerak utama tubuh makhluk hidup."
     },
     tumbuhan: {
       tag: "tumbuhan hijau",
@@ -84,7 +84,7 @@ const QuizPage = () => {
     alat_napas: {
       tag: "alat pernapasan manusia dan hewan",
       judul: "🌬️ Alat Pernapasan Makhluk Hidup",
-      deskripsi: "Mengenal organ insang, trakea, paru-paru, and kulit basah yang dipakai bernapas oleh hewan."
+      deskripsi: "Mengenal organ insang, trakea, paru-paru, dan kulit basah yang dipakai bernapas oleh hewan."
     },
     organ: {
       tag: "organ tubuh manusia dan hewan",
@@ -111,6 +111,11 @@ const QuizPage = () => {
     setError(null);
   };
 
+  // ✨ FITUR BARU: Handler klik opsi jawaban yang sebelumnya terlewat
+  const handleOptionClick = (option) => {
+    setSelectedAnswer(option);
+  };
+
   const handleStartQuiz = async (topicKey) => {
     setSelectedTopic(topicKey);
     setLoading(true);
@@ -130,7 +135,7 @@ const QuizPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: parseInt(userId, 10),
-          topik: infoMateriKuis[topicKey].tag, // Mengirim string tag resmi kecil
+          topik: infoMateriKuis[topicKey].tag, 
           isQuizMode: true, 
           pesan: "" 
         })
@@ -142,8 +147,9 @@ const QuizPage = () => {
 
       const result = await response.json();
 
-      if (result.type === "QUIZ_DATA" && Array.isArray(result.content)) {
-        setCurrentQuestions(result.content); 
+      // Membongkar array kuis yang dibungkus di dalam properti .data dari Express controller
+      if (result.type === "QUIZ_DATA" && Array.isArray(result.data)) {
+        setCurrentQuestions(result.data); 
       } else {
         throw new Error("Struktur paket soal kuis dari server tidak valid.");
       }
@@ -181,6 +187,7 @@ const QuizPage = () => {
       setIsFinished(true);
 
       try {
+        // 🟢 SINKRONISASI: Diarahkan ke server backend lokal Express kelompokmu yang terhubung Supabase
         await fetch('http://localhost:5000/api/quiz/score', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -191,9 +198,9 @@ const QuizPage = () => {
             jawaban_benar: updatedCorrectCount
           })
         });
-        console.log("💾 Nilai sukses tersimpan di database TiDB!");
+        console.log("💾 Nilai sukses tersimpan di database Supabase lewat backend Express!");
       } catch (err) {
-        console.error("⚠️ Gagal menyimpan skor kuis ke TiDB Cloud:", err.message);
+        console.error("⚠️ Gagal menyimpan skor kuis ke database:", err.message);
       }
     }
   };
@@ -209,7 +216,7 @@ const QuizPage = () => {
         <div className="text-center animate-pulse">
           <span className="text-5xl animate-bounce inline-block mb-4">🔬</span>
           <h2 className="text-xl font-black text-[#2C1A0E]">Profesor Sedang Meracik Soal...</h2>
-          <p className="text-[#6B5C4E] text-xs font-bold mt-1">Mengambil data sains terpercaya dari kluster TiDB kelompok 🚀</p>
+          <p className="text-[#6B5C4E] text-xs font-bold mt-1">Mengambil data sains terpercaya dari cluster database kelompok 🚀</p>
         </div>
       </div>
     );
@@ -240,7 +247,7 @@ const QuizPage = () => {
             <span className="text-5xl">🏆</span>
             <h2 className="text-2xl font-black text-[#2C1A0E] mt-3">Misi Selesai!</h2>
             <p className="text-[#6B5C4E] text-xs font-bold mt-1.5 leading-relaxed">
-              Selamat! Nilai akumulasi kuis kamu untuk topik <span className="font-black text-[#7A8C5C] uppercase">{infoMateriKuis[selectedTopic].judul}</span> adalah:
+              Selamat! Nilai akumulasi kuis kamu untuk topik <span className="font-black text-[#7A8C5C] uppercase">{infoMateriKuis[selectedTopic]?.judul}</span> adalah:
             </p>
           </div>
           <div className="text-5xl font-black text-[#7A8C5C] bg-white border border-[#D6CFC4] py-4 rounded-3xl shadow-inner w-max mx-auto px-8">
@@ -265,7 +272,6 @@ const QuizPage = () => {
             <p className="text-[#6B5C4E] text-xs sm:text-sm font-semibold">Pilih satu dari 15 topik materi resmi di bawah ini yang ingin kamu taklukkan hari ini!</p>
           </header>
 
-          {/* Grid Otomatis Melakukan Map Terhadap 15 Objek Materi */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {Object.keys(infoMateriKuis).map((key) => (
               <div key={key} className="bg-[#FAF7F2] border border-[#D6CFC4] p-5 sm:p-6 rounded-[32px] shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
