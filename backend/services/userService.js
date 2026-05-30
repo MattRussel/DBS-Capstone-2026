@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'KUNCI_RAHASIA_SUPER_SAINS_2026';
  */
 export const registerUser = async (username, email, password, role, parentId, namaLengkap) => {
   try {
-    // 1. Validasi: Cek duplikasi via repository (Supabase mengembalikan objek atau null)
+    // 1. Validasi: Cek duplikasi via repository
     const existingUser = await userRepository.findUserByUsernameOrEmail(username, email);
     if (existingUser) {
       throw new Error('Username atau Email sudah terdaftar! Gunakan data lain.');
@@ -31,7 +31,7 @@ export const registerUser = async (username, email, password, role, parentId, na
     });
 
     return {
-      id: result.id, // Supabase langsung mengembalikan properti 'id' murni, bukan 'insertId'
+      id: result.id,
       username: result.username,
       email: result.email,
       role: result.role,
@@ -44,20 +44,24 @@ export const registerUser = async (username, email, password, role, parentId, na
 };
 
 /**
- * 🔑 Logika Bisnis Autentikasi Login Pengguna
+ * 🔑 Logika Bisnis Autentikasi Login Pengguna (Sudah dioptimasi pesan error-nya)
  */
 export const loginUser = async (username, password) => {
   try {
-    // 1. Validasi: Cari user via repository (Langsung mendapatkan 1 objek user murni)
+    // 1. Validasi: Cari user via repository
     const user = await userRepository.findUserByUsername(username);
+    
+    // 🔥 PERUBAHAN 1: Deteksi spesifik jika akun sama sekali belum ada di database
     if (!user) {
-      throw new Error('Username atau password salah, nih!');
+      throw new Error('Username belum terdaftar, nih! Yuk, buat akun baru dulu di tab Daftar! 📝');
     }
 
     // 2. Security: Bandingkan password ketikan dengan password_hash di database
     const isMatch = await bcrypt.compare(password, user.password_hash);
+    
+    // 🔥 PERUBAHAN 2: Deteksi spesifik jika akun ada tapi password-nya salah ketik
     if (!isMatch) {
-      throw new Error('Username atau password salah, nih!');
+      throw new Error('Kata sandi yang kamu masukkan salah, Ilmuwan Cilik! Periksa kembali ya. 🔑');
     }
 
     // 3. Tokenization: Generate Token JWT untuk sesi login 24 jam

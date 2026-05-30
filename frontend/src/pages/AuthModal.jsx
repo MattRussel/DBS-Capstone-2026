@@ -59,7 +59,7 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
       if (activeTab === 'register') {
         // --- 1. PROSES REGISTRASI ---
         if (!formData.agreed) {
-          setErrorMessage('Kamu harus menyetujui syarat & ketentuan platform Kak Pintar.');
+          setErrorMessage('Kamu harus menyetujui syarat & ketentuan platform SainsCerdas.');
           return;
         }
 
@@ -68,7 +68,7 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
           email: formData.email,
           password: formData.password,
           role: formData.role,
-          parent_id: formData.role === 'anak' && formData.parent_id ? parseInt(formData.parent_id) : null,
+          parent_id: formData.role === 'anak' && formData.parent_id ? parseInt(formData.parent_id, 10) : null,
           nama_lengkap: formData.nama_lengkap
         });
 
@@ -101,18 +101,18 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
         }
       }
     } catch (error) {
-      const serverMessage = error.response?.data?.message || '';
+      const serverMessage = error.response?.data?.message || 'Terjadi gangguan jaringan dengan server.';
       
-      // ✨ FITUR BARU: Deteksi jika user belum terdaftar berdasarkan respons backend
-      if (activeTab === 'login' && (serverMessage.toLowerCase().includes('salah') || serverMessage.toLowerCase().includes('tidak ada') || serverMessage.toLowerCase().includes('belum'))) {
-        setErrorMessage('Ups! Akun kamu belum terdaftar nih. Yuk, buat akun baru di tab Daftar terlebih dahulu! 📝');
+      // ✨ DETEKSI AKURAT: Mencari substring "belum terdaftar" secara spesifik dari backend Supabase kita
+      if (activeTab === 'login' && serverMessage.toLowerCase().includes('belum terdaftar')) {
+        setErrorMessage(serverMessage);
         
-        // Opsional: Otomatis memindahkan anak ke tab register dalam 2.5 detik agar mereka tidak bingung
+        // Otomatis memindahkan anak ke tab register dalam 2.5 detik agar interaktif
         setTimeout(() => {
           setActiveTab('register');
         }, 2500);
       } else {
-        setErrorMessage(serverMessage || 'Terjadi gangguan jaringan dengan server.');
+        setErrorMessage(serverMessage);
       }
     }
   };
@@ -126,8 +126,8 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
         {/* Header Bar */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-[#D6CFC4] bg-[#F5F0E8] p-4 rounded-[30px]">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#7A8C5C] rounded-full flex items-center justify-center text-[#FAF7F2] font-black text-2xl border-2 border-white">K</div>
-            <h2 className="font-extrabold text-2xl text-[#2C1A0E]">Kak Pintar</h2>
+            <div className="w-12 h-12 bg-[#7A8C5C] rounded-full flex items-center justify-center text-[#FAF7F2] font-black text-2xl border-2 border-white">S</div>
+            <h2 className="font-extrabold text-2xl text-[#2C1A0E]">SainsCerdas</h2>
           </div>
           <button type="button" onClick={onClose} className="text-[#6B5C4E] hover:text-[#C4621D] p-2 rounded-full transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -152,7 +152,7 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
                 <input type="text" name="nama_lengkap" value={formData.nama_lengkap} onChange={handleChange} placeholder="Contoh: Budi Santoso" className="w-full px-4 py-2.5 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" required />
               </div>
 
-              {/* Email - Atribut required hanya aktif saat tab register agar tidak mengunci tombol login */}
+              {/* Email */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#6B5C4E]">Alamat Email</label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="budi@example.com" className="w-full px-4 py-2.5 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" required={activeTab === 'register'} />
@@ -211,7 +211,7 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
           {activeTab === 'register' && (
             <div className="flex items-start gap-2 pt-1">
               <input type="checkbox" id="agreed" name="agreed" checked={formData.agreed} onChange={handleChange} className="w-4 h-4 mt-0.5 accent-[#7A8C5C]" />
-              <label htmlFor="agreed" className="text-xs text-[#6B5C4E] leading-relaxed select-none">Saya menyetujui semua aturan pengerjaan platform Kak Pintar.</label>
+              <label htmlFor="agreed" className="text-xs text-[#6B5C4E] leading-relaxed select-none">Saya menyetujui semua aturan pengerjaan platform SainsCerdas.</label>
             </div>
           )}
 
