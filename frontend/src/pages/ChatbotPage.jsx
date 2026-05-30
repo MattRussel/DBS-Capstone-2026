@@ -40,6 +40,10 @@ const ChatbotPage = ({ session }) => {
   const messagesEndRef = useRef(null);
   const userId = localStorage.getItem('student_id') || 1;
 
+  // 📡 KONFIGURASI URL API: Otomatis ganti ke URL Vercel backend kamu jika sudah di-deploy
+  const BACKEND_API_URL = 'http://localhost:5000'; 
+  // Contoh jika sudah deploy: const BACKEND_API_URL = 'https://sainscerdas-api.vercel.app';
+
   // Mengatur sapaan awal otomatis setiap kali anak berpindah topik diskusi
   useEffect(() => {
     const topikSkrg = daftarTopikSains.find(t => t.id === selectedTopic);
@@ -85,7 +89,10 @@ const ChatbotPage = ({ session }) => {
   };
 
   // ====================================================================
-  // FUNGSI KIRIM PESAN KE BACKEND EXPRESS (PORT 5000)
+  // FUNGSI KIRIM PESAN KE BACKEND EXPRESS
+  // ====================================================================
+  // ====================================================================
+  // FUNGSI KIRIM PESAN KE BACKEND EXPRESS
   // ====================================================================
   const handleSendMessage = async () => {
     if (!chatInput.trim() || loading) return;
@@ -97,9 +104,10 @@ const ChatbotPage = ({ session }) => {
     setLoading(true);
 
     try {
-      console.log("📡 Menembak Chat ke Express backend localhost:5000...");
+      console.log(`📡 Menembak Chat ke Express backend di: ${BACKEND_API_URL}/api/chatbot`);
       
-      const response = await fetch('http://localhost:5000/api/chatbot/message', {
+      // 🟢 SINKRONISASI 1: Menembak langsung ke base route /api/chatbot sesuai konfigurasi server.js
+      const response = await fetch(`${BACKEND_API_URL}/api/chatbot`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,8 +127,12 @@ const ChatbotPage = ({ session }) => {
 
       const result = await response.json();
 
+      // 🟢 SINKRONISASI 2: Membaca properti 'result.data' untuk mencocokkan output controller
       if (result.type === "CHAT_TEXT") {
-        setMessages((prev) => [...prev, { role: 'assistant', content: result.content }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: result.data }]);
+      } else if (result.data && result.data.content) {
+        // Fallback jika format object sempat terbungkus ulang
+        setMessages((prev) => [...prev, { role: 'assistant', content: result.data.content }]);
       }
 
     } catch (error) {

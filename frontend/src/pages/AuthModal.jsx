@@ -55,6 +55,12 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
     setErrorMessage('');
     setSuccessMessage('');
 
+    // 🛡️ VALIDASI PASSWORD MINIMAL 6 KARAKTER (Berlaku untuk Daftar maupun Masuk)
+    if (!formData.password || formData.password.length < 6) {
+      setErrorMessage('Waduh, kata sandi terlalu pendek! 🔑\nMinimal harus 6 karakter ya, biar akun Ilmuwan Cilik kamu tetap aman!');
+      return; // 🛑 Hentikan aliran kode di sini, jangan tembak server dulu
+    }
+
     try {
       if (activeTab === 'register') {
         // --- 1. PROSES REGISTRASI ---
@@ -187,7 +193,8 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
           <div className="space-y-1 relative">
             <label className="text-xs font-bold text-[#6B5C4E]">Kata Sandi</label>
             <div className="relative">
-              <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-2.5 pr-11 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" required />
+              {/* Ditambahkan attribute minLength="6" sebagai proteksi ganda bawaan HTML5 HTML */}
+              <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" minLength={6} className="w-full px-4 py-2.5 pr-11 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C]" required />
               
               <button 
                 type="button" 

@@ -17,7 +17,9 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          // 🟢 BYPASS NGROK: Mencegah error fetch failed akibat halaman warning Ngrok
+          'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify({ 
           message: `Buat kelompokkan 3 soal pilihan ganda tentang materi sains '${topik}' untuk anak SD. Berikan hasil akhir HARUS langsung berbentuk array JSON tanpa penjelasan kata-kata pembuka/penutup lain, dengan format struktur objek seperti ini: [{"soal": "...", "opsi": ["A...", "B...", "C...", "D..."], "jawaban_benar": "A"}].`,
@@ -38,7 +40,8 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
 
       // 🧠 SAFETY CLEANUP: Bersihkan karakter backtick ```json jika LLM mengirim format markdown
       if (teksBalasanKuis.includes("```")) {
-        teksBalasanKuis = teksBalasanKuis.replace(/```json|```/g, "").strip();
+        // 🟢 PERBAIKAN BUG: Menggunakan .trim() milik JavaScript asli agar tidak crash
+        teksBalasanKuis = teksBalasanKuis.replace(/```json|```/g, "").trim();
       }
 
       const arraySoalKuis = JSON.parse(teksBalasanKuis);
@@ -76,7 +79,9 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        // 🟢 BYPASS NGROK: Mencegah error fetch failed akibat halaman warning Ngrok
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify({
         message: pesan, 
@@ -91,7 +96,7 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
     const aiData = await aiResponse.json();
     const balasanAI = aiData.answer || "Halo Ilmuwan Cilik!";
 
-    // 2. 💾 SIMPAN KE SUPABASE (Hanya dipanggil JIKA fetch ke AI di atas sukses 200 OK)
+    // 2. 💾 SIMPAN KE SUPABASE (Aman jaya tanpa hambatan Foreign Key)
     console.log("⏳ [Supabase Insert] Menyimpan log obrolan sukses ke chatbot_history...");
     await chatbotRepository.saveChatMessage(user_id, pesan, balasanAI, {
       topik: aiData.category || topik || null,
