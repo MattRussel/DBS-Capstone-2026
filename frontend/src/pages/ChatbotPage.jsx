@@ -55,7 +55,12 @@ const ChatbotPage = ({ session }) => {
       setMessages([
         { role: 'assistant', content: `Membuka kembali arsip lab percakapan tentang: "${title}" 📂` },
         { role: 'user', content: `Prof, jelaskan kembali ringkasan tentang hal itu.` },
-        { role: 'assistant', content: `Tentu! Berdasarkan data yang kita kumpulkan sebelumnya, inti dari fenomena tersebut adalah interaksi energi yang stabil. Ada bagian spesifik yang ingin kamu tanyakan lagi? 🔬` }
+        { 
+          role: 'assistant', 
+          content: `Tentu! Berdasarkan data yang kita kumpulkan sebelumnya, inti dari fenomena tersebut adalah interaksi energi yang stabil. Ada bagian spesifik yang ingin kamu tanyakan lagi? 🔬`,
+          topicTag: title.replace(/[^a-zA-Z0-9 ]/g, '').trim(),
+          confidenceTag: "100%"
+        }
       ]);
       setLoading(false);
     }, 500);
@@ -106,11 +111,28 @@ const ChatbotPage = ({ session }) => {
 
       const result = await response.json();
 
-      // Membaca properti 'result.data' untuk mencocokkan output controller
+      // 🟢 PERBAIKAN: Menangkap struktur object baru (text, predicted_topic, tf_confidence) dari Service Express
       if (result.type === "CHAT_TEXT") {
-        setMessages((prev) => [...prev, { role: 'assistant', content: result.data }]);
-      } else if (result.data && result.data.content) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: result.data.content }]);
+  setMessages((prev) => [
+    ...prev, 
+    { 
+      role: 'assistant', 
+      content: result.data.text,
+      topicTag: result.data.predicted_topic,   // Mengambil teks topik TF
+      confidenceTag: result.data.tf_confidence, // Mengambil % Akurasi TF (cth: 79.3%)
+      similarityTag: result.data.similarity_score // 💡 Opsi Tambahan: Mengambil % Jarak RAG
+    }
+  ]);
+}else if (result.data && result.data.content) {
+        setMessages((prev) => [
+          ...prev, 
+          { 
+            role: 'assistant', 
+            content: result.data.content.text || result.data.content,
+            topicTag: result.data.content.predicted_topic || null,
+            confidenceTag: result.data.content.tf_confidence || null
+          }
+        ]);
       }
 
     } catch (error) {
@@ -194,8 +216,18 @@ const ChatbotPage = ({ session }) => {
                         {msg.content}
                       </p>
                     </div>
+
+                    {/* 🟢 RENDERING BARU: Menampilkan tag metadata lencana hasil klasifikasi TensorFlow */}
+                    {msg.topicTag && msg.topicTag !== "Tidak terdeteksi" && (
+                      <div className="flex flex-wrap items-center gap-2 ml-1 animate-fadeIn">
+                        <span className="text-[10px] bg-[#2C1A0E] text-[#FAF7F2] font-black px-2.5 py-1 rounded-md shadow-xs tracking-wide">
+                          🧠 Topik TF model: {msg.topicTag.toLowerCase()} ({msg.confidenceTag})
+                        </span>
+                      </div>
+                    )}
+
                     {index > 0 && (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 ml-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 ml-1 mt-0.5">
                         <span className="text-[10px] text-[#6B5C4E] font-black uppercase tracking-wide mr-1 hidden sm:block">Jawaban ini:</span>
                         <div className="flex gap-2">
                           <button className="text-[11px] font-bold px-3 py-1.5 border border-[#D6CFC4] rounded-full text-[#2C1A0E] bg-white hover:bg-[#FAF7F2] shadow-xs active:scale-95 transition-transform">👍 Mudah dipahami</button>
@@ -227,7 +259,7 @@ const ChatbotPage = ({ session }) => {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder={loading ? "Profesor sedang berfikir..." : "Tanya apa saja (cth: Kenapa air laut rasanya asin?)"} 
+                placeholder={loading ? "Profesor sedang berpikir..." : "Tanya apa saja (cth: Kenapa cicak memutuskan ekornya?)"} 
                 className="w-full bg-transparent border-none outline-none text-sm text-[#2C1A0E] placeholder-[#6B5C4E] font-bold disabled:cursor-not-allowed"
               />
               <button 

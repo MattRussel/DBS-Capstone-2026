@@ -18,7 +18,6 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          // 🟢 BYPASS NGROK: Mencegah error fetch failed akibat halaman warning Ngrok
           'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify({ 
@@ -28,7 +27,7 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
       });
 
       if (!aiResponse.ok) {
-        throw new Error(`API FastAPI merespons dengan status: ${aiResponse.status} (Kemungkinan URL Ngrok Expired)`);
+        throw new Error(`API FastAPI merespons dengan status: ${aiResponse.status}`);
       }
 
       const aiData = await aiResponse.json();
@@ -38,9 +37,7 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
         throw new Error("Respons teks kuis dari FastAPI kosong.");
       }
 
-      // 🧠 SAFETY CLEANUP: Bersihkan karakter backtick ```json jika LLM mengirim format markdown
       if (teksBalasanKuis.includes("```")) {
-        // 🟢 PERBAIKAN BUG: Menggunakan .trim() milik JavaScript asli agar tidak crash
         teksBalasanKuis = teksBalasanKuis.replace(/```json|```/g, "").trim();
       }
 
@@ -53,8 +50,6 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
 
     } catch (error) {
       console.error("❌ [Quiz Generation Error]: Gagal generate kuis lewat prompt chat:", error.message);
-      
-      // Fallback Darurat agar modul kuis frontend tidak hang/stuck
       return {
         type: "QUIZ_DATA",
         content: [
@@ -74,13 +69,11 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
   try {
     console.log(`📡 Meneruskan chat ke API Publik Ngrok Tim AI untuk diproses...`);
 
-    // 1. Tembak API FastAPI AI Engineer terlebih dahulu
     const aiResponse = await fetch(`${AI_ENGINEER_API_URL}/chat`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        // 🟢 BYPASS NGROK: Mencegah error fetch failed akibat halaman warning Ngrok
         'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify({
@@ -90,35 +83,51 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
     });
 
     if (!aiResponse.ok) {
-      throw new Error(`API Tim AI merespons dengan status: ${aiResponse.status} (Kemungkinan URL Ngrok Expired)`);
+      throw new Error(`API Tim AI merespons dengan status: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
     const balasanAI = aiData.answer || "Halo Ilmuwan Cilik!";
 
-    // 2. 💾 SIMPAN KE SUPABASE (Aman jaya tanpa hambatan Foreign Key)
+    // 🔬 PARSING DATA AGAR ANGKA KONSISTEN DENGAN PYTHON TERMINAL
+    let rawConfidence = aiData.tf_confidence ? parseFloat(aiData.tf_confidence) : 0;
+    let formattedConfidence = rawConfidence < 1 ? `${(rawConfidence * 100).toFixed(1)}%` : `${rawConfidence.toFixed(1)}%`;
+
+    let rawSimilarity = aiData.similarity_score ? parseFloat(aiData.similarity_score) : 0;
+    // Jika dari Python bernilai 0.6349, kalikan 100 -> 63.5%. Jika sudah 63.49, langsung tampilkan.
+    let formattedSimilarity = rawSimilarity < 1 ? `${(rawSimilarity * 100).toFixed(2)}%` : `${rawSimilarity.toFixed(2)}%`;
+
+    // 1. 💾 SIMPAN KE SUPABASE (Data bersih konsisten)
     console.log("⏳ [Supabase Insert] Menyimpan log obrolan sukses ke chatbot_history...");
     await chatbotRepository.saveChatMessage(user_id, pesan, balasanAI, {
-      topik: aiData.category || topik || null,
+      topik: aiData.predicted_topic || topik || null, 
       subtopik: aiData.subtopik || null,
       konteks: aiData.question_matched || null,
-      jenisPertanyaan: aiData.predicted_topic || null,
-      kompleksitas: aiData.similarity_score ? aiData.similarity_score.toString() : null
+      jenisPertanyaan: aiData.category || null,       
+      kompleksitas: formattedSimilarity 
     });
 
+    // 2. 🟢 RETURNING DATA KE FRONTEND
     return {
       type: "CHAT_TEXT",
-      content: balasanAI
+      content: {
+        text: balasanAI,
+        predicted_topic: aiData.predicted_topic || "Tidak terdeteksi",
+        tf_confidence: formattedConfidence,          // 🧠 Hasil Model TF (cth: 13.0%)
+        similarity_score: formattedSimilarity       // 🎯 Hasil Jarak RAG TiDB (cth: 63.49%)
+      }
     };
 
   } catch (error) {
     console.error("❌ [Chatbot Service Error]:", error.message);
-    
-    // Balasan Fallback pintar jika server python / ngrok mati di tengah jalan
-    const balasanFallback = `Halo Ilmuwan Cilik! 👋 Profesor Cerdas sedang merapikan laboratorium jurnal sains dulu. Yuk coba kembali sesaat lagi atau selesaikan misi yang lain! 🚀`;
     return {
       type: "CHAT_TEXT",
-      content: balasanFallback
+      content: {
+        text: `Halo Ilmuwan Cilik! 👋 Profesor Cerdas sedang merapikan laboratorium jurnal sains dulu. Yuk coba kembali sesaat lagi! 🚀`,
+        predicted_topic: null,
+        tf_confidence: null,
+        similarity_score: null
+      }
     };
   }
 };
