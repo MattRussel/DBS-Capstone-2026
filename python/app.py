@@ -23,18 +23,21 @@ logging.basicConfig(level=logging.INFO)
 # Config
 # ---------------------------------------------------------------------------
 
-load_dotenv("config.env")
+if os.path.exists("config.env"):
+    load_dotenv("config.env")
+else:
+    load_dotenv(os.path.join(os.path.dirname(__file__), "config.env"))
 
 DB_CONFIG = {
-    "host":               os.getenv("DB_HOST"),
+    "host":               os.getenv("DB_HOST", ""),
     "port":               int(os.getenv("DB_PORT", 4000)),
     "user":               os.getenv("DB_USER"),
     "password":           os.getenv("DB_PASSWORD"),
     "database":           os.getenv("DB_NAME"),
     "ssl_disabled":       False,
     "connection_timeout": 60,
+    "use_pure":           True 
 }
-
 
 # ---------------------------------------------------------------------------
 # Custom Keras objects merekonstruksi arsitektur + compile config
@@ -332,7 +335,7 @@ class RAGRetriever:
         )
         rows = self.cursor.fetchall()
         
-        # Jika tidak ditemukan topik tersebut, ambil acak dari semua topik
+        # Jika tidak ditemukan topik maka akan ambil acak dari semua topik
         if not rows:
             self.cursor.execute(
                 """
@@ -406,18 +409,24 @@ class RAGRetriever:
 # Load semua artefak saat startup
 # ---------------------------------------------------------------------------
 
-print("Loading model TensorFlow ...")
-
+# Ambil base directory dari script app.py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-tf_model = tf.keras.models.load_model(
-    os.path.join(BASE_DIR, "semantic_faq_model.keras"),
-    custom_objects={
-        "AttentionPooling": AttentionPooling,
-        "FocalLoss":        FocalLoss,
-        "OneHotMAE":        OneHotMAE,
-    }
-)
+print("Loading model TensorFlow (SavedModel format)...")
+
+# Load langsung dari folder savedmodel yang dihasilkan notebook
+# tf_model = tf.keras.models.load_model(
+#     os.path.join(BASE_DIR, "semantic_faq_savedmodel"), 
+#     custom_objects={
+#         "AttentionPooling": AttentionPooling,
+#         "FocalLoss":        FocalLoss,
+#         "OneHotMAE":        OneHotMAE,
+#     },
+#     compile=False
+# )
+
+# Load menggunakan API core TensorFlow untuk membaca SavedModel 
+tf_model = tf.saved_model.load(os.path.join(BASE_DIR, "semantic_faq_savedmodel"))
 
 with open(os.path.join(BASE_DIR, "label_mapping.json")) as f:
     label_map = {int(k): v for k, v in json.load(f).items()}
@@ -490,12 +499,14 @@ def chat(req: ChatRequest):
             "similarity_score": 0.0,
             "question_matched": None,
         }
-
-    # 2. Prediksi topik pakai model TF
-    pred            = tf_model.predict(tf.constant([req.message], dtype=tf.string), verbose=0)
-    idx             = int(np.argmax(pred))
+        
+    # 2. Prediksi topik pakai model TF (Format SavedModel Direct Call)
+    input_tensor    = tf.constant([req.message], dtype=tf.string)
+    # Panggil model secara langsung seperti fungsi biasa
+    pred            = tf_model(input_tensor) 
+    idx             = int(np.argmax(pred.numpy()))
     predicted_topic = label_map[idx]
-    tf_confidence   = float(np.max(pred))
+    tf_confidence   = float(np.max(pred.numpy()))
 
     # 3. Ambil jawaban dari TiDB (RAG)
     result = retriever.get_best_answer(req.message)

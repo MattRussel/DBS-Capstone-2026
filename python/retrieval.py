@@ -5,7 +5,7 @@ import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
 from sentence_transformers import SentenceTransformer
-from python.topic_classifier import predict_topic
+from topic_classifier import predict_topic
 
 # LOGGING
 logging.basicConfig(
