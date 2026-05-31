@@ -47,7 +47,8 @@ export const findUserByUsername = async (username) => {
  */
 export const createUser = async (userData) => {
   try {
-    const { username, email, passwordHash, role, parentId, namaLengkap } = userData;
+    // 🟢 PERBAIKAN: Tangkap parentPassword (bukan parentId) dari userData
+    const { username, email, passwordHash, role, parentPassword, namaLengkap } = userData;
 
     const { data, error } = await supabase
       .from('users')
@@ -57,7 +58,8 @@ export const createUser = async (userData) => {
           email,
           password_hash: passwordHash, 
           role: role || 'anak',
-          parent_id: parentId ? parseInt(parentId, 10) : null,
+          // 🟢 PERBAIKAN: Masukkan ke kolom parent_password murni sebagai string VARCHAR
+          parent_password: role === 'anak' ? (parentPassword || '') : '',
           nama_lengkap: namaLengkap || 'Siswa Cerdas'
         }
       ])

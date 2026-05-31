@@ -8,7 +8,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'KUNCI_RAHASIA_SUPER_SAINS_2026';
 /**
  * 📝 Logika Bisnis Registrasi Pengguna Baru
  */
-export const registerUser = async (username, email, password, role, parentId, namaLengkap) => {
+// 🟢 PERBAIKAN: Ganti parameter parentId menjadi parent_password
+export const registerUser = async (username, email, password, role, parent_password, namaLengkap) => {
   try {
     // 1. Validasi: Cek duplikasi via repository
     const existingUser = await userRepository.findUserByUsernameOrEmail(username, email);
@@ -20,13 +21,13 @@ export const registerUser = async (username, email, password, role, parentId, na
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // 3. Persist: Perintahkan simpan ke database Supabase
+    // 3. Persist: Perintahkan simpan ke database Supabase via Repository
     const result = await userRepository.createUser({
       username, 
       email, 
       passwordHash, 
       role, 
-      parentId, 
+      parentPassword: parent_password, // 🟢 SINKRON: Menggunakan parentPassword sesuai camelCase di repository
       namaLengkap
     });
 
@@ -35,7 +36,8 @@ export const registerUser = async (username, email, password, role, parentId, na
       username: result.username,
       email: result.email,
       role: result.role,
-      namaLengkap: result.nama_lengkap
+      namaLengkap: result.nama_lengkap,
+      parent_password: result.parent_password // 🟢 Mengembalikan kolom baru
     };
   } catch (error) {
     console.error("❌ [Auth Service] Gagal memproses registrasi:", error.message);
@@ -44,14 +46,14 @@ export const registerUser = async (username, email, password, role, parentId, na
 };
 
 /**
- * 🔑 Logika Bisnis Autentikasi Login Pengguna (Sudah dioptimasi pesan error-nya)
+ * 🔑 Logika Bisnis Autentikasi Login Pengguna
  */
 export const loginUser = async (username, password) => {
   try {
     // 1. Validasi: Cari user via repository
     const user = await userRepository.findUserByUsername(username);
     
-    // 🔥 PERUBAHAN 1: Deteksi spesifik jika akun sama sekali belum ada di database
+    // Deteksi spesifik jika akun sama sekali belum ada di database
     if (!user) {
       throw new Error('Username belum terdaftar, nih! Yuk, buat akun baru dulu di tab Daftar! 📝');
     }
@@ -59,7 +61,7 @@ export const loginUser = async (username, password) => {
     // 2. Security: Bandingkan password ketikan dengan password_hash di database
     const isMatch = await bcrypt.compare(password, user.password_hash);
     
-    // 🔥 PERUBAHAN 2: Deteksi spesifik jika akun ada tapi password-nya salah ketik
+    // Deteksi spesifik jika akun ada tapi password-nya salah ketik
     if (!isMatch) {
       throw new Error('Kata sandi yang kamu masukkan salah, Ilmuwan Cilik! Periksa kembali ya. 🔑');
     }
@@ -71,6 +73,7 @@ export const loginUser = async (username, password) => {
       { expiresIn: '24h' }
     );
 
+    // 🟢 PERBAIKAN: Sertakan parent_password dari database agar bisa diteruskan ke Controller -> Frontend
     return {
       token,
       user: {
@@ -78,7 +81,8 @@ export const loginUser = async (username, password) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        nama_lengkap: user.nama_lengkap
+        nama_lengkap: user.nama_lengkap,
+        parent_password: user.parent_password // 🔒 Dibawa ke frontend untuk disimpan di localStorage
       }
     };
   } catch (error) {

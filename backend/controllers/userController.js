@@ -1,8 +1,10 @@
 import * as authService from '../services/userService.js';
 
 export const handleRegister = async (req, res) => {
-  const { username, email, password, role, parent_id, nama_lengkap } = req.body;
+  // 🟢 PERBAIKAN: Ganti parent_id menjadi parent_password dari req.body
+  const { username, email, password, role, parent_password, nama_lengkap } = req.body;
 
+  // Validasi input utama tetap terjaga
   if (!username || !email || !password || !role || !nama_lengkap) {
     return res.status(400).json({ 
       success: false, 
@@ -10,8 +12,18 @@ export const handleRegister = async (req, res) => {
     });
   }
 
+  // 🛡️ VALIDASI TAMBAHAN: Jika mendaftar sebagai anak, parent_password wajib ada nilainya
+  if (role === 'anak' && (!parent_password || !parent_password.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Gagal! Kata Sandi Orang Tua (parent_password) wajib diisi untuk akun anak.'
+    });
+  }
+
   try {
-    const user = await authService.registerUser(username, email, password, role, parent_id, nama_lengkap);
+    // 🟢 PERBAIKAN: Meneruskan variabel parent_password ke dalam userService layer
+    const user = await authService.registerUser(username, email, password, role, parent_password, nama_lengkap);
+    
     return res.status(201).json({
       success: true,
       message: 'Hore! Akun peneliti cilik berhasil terdaftar. ✨',
@@ -34,7 +46,7 @@ export const handleLogin = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Selamat datang kembali, Ilmuwan Hebat! 🚀',
-      ...data
+      ...data // data ini otomatis membawa token dan profil user dari service layer
     });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });

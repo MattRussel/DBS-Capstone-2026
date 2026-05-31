@@ -103,7 +103,7 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
       topik: aiData.predicted_topic || topik || null, 
       subtopik: aiData.subtopik || null,
       konteks: aiData.question_matched || null,
-      jenisPertanyaan: aiData.category || null,       
+      jenis_pertanyaan: aiData.category || null,       
       kompleksitas: formattedSimilarity 
     });
 
