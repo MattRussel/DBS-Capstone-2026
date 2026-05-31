@@ -1,5 +1,7 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; // 🌟 TAMBAHAN: Import Framer Motion
+
 import AuthModal from './pages/AuthModal';
 import QuizPage from './pages/QuizPage'; 
 import ProfilePage from './pages/ProfilePage';
@@ -15,6 +17,9 @@ const App = () => {
   // State Navigasi Router Sederhana Lokal
   const [activePage, setActivePage] = useState('home');
   const [chatInput, setChatInput] = useState('');
+
+  // 🌟 TAMBAHAN: State untuk mengontrol munculnya pop-up animasi keluar
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Sesi Sinkronisasi Terintegrasi Database TiDB Cloud & Status Guest Mode
   const [session, setSession] = useState({
@@ -45,11 +50,19 @@ const App = () => {
     setChatInput('');
   };
 
+  // 🌟 PERUBAHAN: Fungsi handleLogout di-upgrade pakai jeda animasi
   const handleLogout = () => {
-    localStorage.clear();
-    setSession({ token: null, name: '', role: '', id: null, isGuest: false });
-    setActivePage('home');
-    alert("Kamu berhasil keluar!");
+    // 1. Munculkan pop-up animasi dadah-dadah
+    setIsLoggingOut(true);
+
+    // 2. Tunggu 1.5 detik biar animasinya selesai ditonton, baru eksekusi logout
+    setTimeout(() => {
+      localStorage.clear();
+      setSession({ token: null, name: '', role: '', id: null, isGuest: false });
+      setActivePage('home');
+      setIsLoggingOut(false); // Sembunyikan kembali pop-up nya
+      setIsMobileMenuOpen(false); // Tutup menu mobile jika terbuka
+    }, 1500);
   };
 
   return (
@@ -118,7 +131,13 @@ const App = () => {
           {session.token ? (
             <div className="flex flex-col gap-2 text-center text-xs">
               <span>Halo, <b>{session.name}</b></span>
-              <button onClick={handleLogout} className="w-full bg-[#C4621D] text-white font-bold py-2 rounded-full shadow-md">Keluar Akun</button>
+              <button 
+                onClick={handleLogout} 
+                disabled={isLoggingOut}
+                className="w-full bg-[#C4621D] text-white font-bold py-2 rounded-full shadow-md disabled:opacity-50"
+              >
+                Keluar Akun
+              </button>
             </div>
           ) : session.isGuest ? (
             <div className="flex flex-col gap-2 text-center text-xs">
@@ -126,7 +145,11 @@ const App = () => {
               <button onClick={() => setIsAuthModalOpen(true)} className="w-full bg-[#2C1A0E] text-white font-bold py-2 rounded-full shadow-md hover:bg-[#3B2314]">
                 🔐 Daftar Akun Resmi
               </button>
-              <button onClick={handleLogout} className="w-full border border-[#D6CFC4] text-[#6B5C4E] text-[10px] font-bold py-1 rounded-full hover:bg-white mt-1">
+              <button 
+                onClick={handleLogout} 
+                disabled={isLoggingOut}
+                className="w-full border border-[#D6CFC4] text-[#6B5C4E] text-[10px] font-bold py-1 rounded-full hover:bg-white mt-1 disabled:opacity-50"
+              >
                 Keluar Guest Mode
               </button>
             </div>
@@ -150,6 +173,61 @@ const App = () => {
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       
+      {/* 🌟 TAMBAHAN: 🚨 POP-UP ANIMASI KELUAR AKUN 🚨 */}
+      <AnimatePresence>
+        {isLoggingOut && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#2C1A0E]/60 backdrop-blur-sm font-['Nunito']"
+          >
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className="bg-[#FAF7F2] p-8 sm:p-10 rounded-[40px] shadow-2xl border-2 border-[#D6CFC4] flex flex-col items-center gap-4 text-center max-w-sm w-[90%] relative overflow-hidden"
+            >
+              
+              <motion.div 
+                animate={{ rotate: [0, 25, -15, 25, 0] }}
+                transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                className="text-7xl mb-1 origin-bottom-right"
+              >
+                👋
+              </motion.div>
+              
+              <div className="space-y-1 z-10">
+                <h3 className="text-2xl font-extrabold text-[#2C1A0E]">Sampai Jumpa!</h3>
+                <p className="text-sm font-bold text-[#6B5C4E] leading-relaxed">
+                  Merapikan alat laboratorium... <br/>
+                  Tunggu sebentar ya! 🔬
+                </p>
+              </div>
+              
+              <div className="w-full h-2 bg-[#EAE4D9] rounded-full mt-4 overflow-hidden z-10">
+                <motion.div 
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 1.5, ease: "linear" }}
+                  className="h-full bg-[#7A8C5C] rounded-full relative overflow-hidden"
+                >
+                   <motion.div 
+                    animate={{ x: ["-100%", "200%"] }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    className="absolute top-0 bottom-0 w-1/2 bg-white/30 skew-x-12"
+                   />
+                </motion.div>
+              </div>
+
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#F5F0E8] rounded-full mix-blend-multiply opacity-70"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[#F5F0E8] rounded-full mix-blend-multiply opacity-70"></div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

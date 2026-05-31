@@ -15,8 +15,13 @@ import quizRoutes from './routes/quizRoutes.js';
 
 const app = express();
 
-// 🛡️ Middleware Utama Express
-app.use(cors());
+// 🛡️ Middleware Utama Express (Dioptimalkan agar Frontend Vercel bisa mengakses tanpa terblokir CORS)
+app.use(cors({
+  origin: true, // Mengizinkan semua origin di fase produksi/development capstone
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
 app.use(express.json()); // Supaya server bisa membaca kiriman data format JSON dari frontend
 
 // 🔗 Registrasi Jalur Rute RESTful API Kelompokmu
@@ -40,9 +45,11 @@ app.get('/', async (req, res) => {
   }
 });
 
-// 🏃‍♂️ Konfigurasi Port Menyalakan Mesin Server (Mode Lokal)
+// 🏃‍♂️ Konfigurasi Port Menyalakan Mesin Server (Mode Lokal & Fallback Serverless)
+// Menggunakan port dinamis yang ramah terhadap siklus container cloud
+const PORT = process.env.PORT || 5000;
+
 if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`🚀 SainsCerdas berjalan di http://localhost:${PORT}`);
   });
