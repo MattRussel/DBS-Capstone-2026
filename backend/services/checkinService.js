@@ -5,7 +5,8 @@ import * as checkinRepository from '../repositories/checkinRepository.js';
  * 📝 Menjalankan fungsi Absensi Harian (Daily Check-In) Anak
  * Mengatur validasi absensi ganda dan kalkulasi runtun hari (streak)
  */
-export const executeDailyCheckIn = async (userId) => {
+// 🟢 PERBAIKAN 1: Tambahkan parameter materiDipelajari, mood, dan tingkatKesulitan dari controller
+export const executeDailyCheckIn = async (userId, materiDipelajari, mood, tingkatKesulitan) => {
   const hariIni = new Date().toLocaleDateString('sv-SE');
 
   // A. VALIDASI: Pastikan anak belum absen hari ini
@@ -21,8 +22,9 @@ export const executeDailyCheckIn = async (userId) => {
   // Jika kemarin ada data absen, naikkan streak. Jika bolos, reset otomatis ke angka 1
   const streakTerbaru = checkinKemarin ? checkinKemarin.streak_count + 1 : 1;
 
-  // C. SIMPAN: Tusuk baris data absensi baru ke Supabase
-  await checkinRepository.createCheckin(userId, hariIni, streakTerbaru);
+  // C. SIMPAN: Kirim semua data jurnal lengkap ke repository untuk disimpan ke Supabase Cloud
+  // 🟢 PERBAIKAN 2: Meneruskan variabel detail jurnal baru ke fungsi createCheckin
+  await checkinRepository.createCheckin(userId, hariIni, streakTerbaru, materiDipelajari, mood, tingkatKesulitan);
 
   return { 
     success: true, 

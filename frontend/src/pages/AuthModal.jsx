@@ -212,13 +212,12 @@ const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
                   <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="budi@example.com" className="w-full px-5 py-3 border border-[#D6CFC4] bg-white text-sm rounded-xl outline-none font-medium text-[#2C1A0E] focus:border-[#7A8C5C] focus:ring-1 focus:ring-[#7A8C5C] transition-all" required={activeTab === 'register'} />
                 </div>
                 
-                {/* Peran Akun */}
+                {/* Peran Akun - Pilihan Tetap Terkunci */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-[#6B5C4E]">Peran Akun</label>
-                  <select name="role" value={formData.role} onChange={handleChange} className="w-full px-5 py-3 border border-[#D6CFC4] rounded-xl bg-white text-sm font-bold text-[#2C1A0E] outline-none focus:border-[#7A8C5C] focus:ring-1 focus:ring-[#7A8C5C] transition-all cursor-pointer">
-                    <option value="anak">👦 Anak (Siswa Sekolah Dasar)</option>
-                    <option value="orangtua">👨‍👩‍👦 Orang Tua (Wali Murid)</option>
-                  </select>
+                  <div className="w-full px-5 py-3 border border-[#D6CFC4] rounded-xl bg-[#EAE4D9]/40 text-sm font-black text-[#7A8C5C] select-none flex items-center gap-2">
+                    <span>👦</span> Anak (Ilmuwan Cilik)
+                  </div>
                 </div>
 
                 {/* 🔒 KATA SANDI ORANG TUA (WAJIB / NON-OPTIONAL JIKA MENDAFTAR SEBAGAI ANAK) */}

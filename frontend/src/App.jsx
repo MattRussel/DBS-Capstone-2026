@@ -9,7 +9,7 @@ import HomePage from './pages/HomePage';
 import TopikPage from './pages/TopikPage';
 import CheckInPage from './pages/CheckInPage';
 import ChatbotPage from './pages/ChatbotPage';
-import ParentPage from './pages/ParentPage'; // 🟢 Sudah aktif diimpor sempurna
+import ParentPage from './pages/ParentPage'; 
 
 const App = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -32,7 +32,7 @@ const App = () => {
     name: localStorage.getItem('student_name') || '',
     role: localStorage.getItem('student_role') || '',
     id: localStorage.getItem('student_id') || null,
-    parentPassword: localStorage.getItem('parent_password') || '123456', // 🔒 Ambil data password orang tua dari DB login
+    parentPassword: localStorage.getItem('parent_password') || '123456', 
     isGuest: localStorage.getItem('app_mode_guest') === 'true'
   });
 
@@ -57,16 +57,25 @@ const App = () => {
     setChatInput('');
   };
 
-  const handleLogout = () => {
-    setIsLoggingOut(true);
-    setTimeout(() => {
-      localStorage.clear();
-      setSession({ token: null, name: '', role: '', id: null, parentPassword: '123456', isGuest: false });
-      setActivePage('home');
-      setIsLoggingOut(false); 
-      setIsMobileMenuOpen(false); 
-    }, 1500);
-  };
+  // 🔍 Cari fungsi ini di src/App.jsx kelompokmu:
+const handleLogout = () => {
+  setIsLoggingOut(true); //[cite: 4]
+  setTimeout(() => {
+
+    // 🟢 PERBAIKAN: Hapus data otentikasi login saja, biarkan stempel tanggal check-in hari ini tetap aman
+    localStorage.removeItem('student_token');
+    localStorage.removeItem('student_name');
+    localStorage.removeItem('student_role');
+    localStorage.removeItem('student_id');
+    localStorage.removeItem('parent_password');
+    localStorage.removeItem('app_mode_guest');
+
+    setSession({ token: null, name: '', role: '', id: null, parentPassword: '123456', isGuest: false }); //[cite: 4]
+    setActivePage('home'); //[cite: 4]
+    setIsLoggingOut(false); //[cite: 4]
+    setIsMobileMenuOpen(false); //[cite: 4]
+  }, 1500); //[cite: 4]
+};
 
   // ====================================================================
   // 🔐 VERIFIKASI GERBANG ORANG TUA (PARENTAL GATE VALIDATION)
@@ -74,18 +83,33 @@ const App = () => {
   const handleVerifyParentMode = () => {
     setParentAuthError('');
 
-    // Validasi apakah input password cocok dengan parent_password dari registrasi database
+    // 🛡️ PROTEKSI 1: Tolak jika status login masih berupa Tamu (Guest Mode)
+    if (session.isGuest || !session.token) {
+      setParentAuthError('❌ Akses ditolak! Mode Tamu tidak memiliki akses Orang Tua.');
+      return;
+    }
+
+    // 🛡️ PROTEKSI 2: Validasi kecocokan sandi spesifik milik akun anak yang aktif
     if (parentPasswordInput === session.parentPassword) {
       setIsParentModalOpen(false);
       setParentPasswordInput('');
       
-      // Mengalihkan halaman aktif ke ruang pantau orang tua
+      // Mengalihkan halaman aktif murni ke ruang pantau orang tua
       setActivePage('parent'); 
       setIsMobileMenuOpen(false);
-      alert("🔐 Pintu Gerbang Terbuka! Selamat Datang di Ruang Pantau Orang Tua.");
+      alert(`🔐 Akses Diberikan! Selamat datang di Ruang Pantau Anak: ${session.name}.`);
     } else {
       setParentAuthError('❌ Kata sandi salah! Pintu gerbang terkunci.');
     }
+  };
+
+  // ====================================================================
+  // 👦 SAKLAR INSTAN KEMBALI KE MODE ANAK (TANPA PASSWORD)
+  // ====================================================================
+  const handleSwitchToStudentMode = () => {
+    setActivePage('home'); // Kembalikan ke beranda utama anak
+    setIsMobileMenuOpen(false);
+    alert("👦 Berhasil kembali ke Mode Anak-anak!");
   };
 
   return (
@@ -93,7 +117,10 @@ const App = () => {
       
       {/* --- MOBILE HEADER --- */}
       <div className="md:hidden flex items-center justify-between bg-[#7A8C5C] text-[#FAF7F2] p-4 sticky top-0 z-30 rounded-b-[40px]">
-        <div onClick={() => setActivePage('profil')} className="flex items-center gap-3 cursor-pointer active:opacity-80">
+        <div 
+          onClick={() => activePage !== 'parent' && setActivePage('profil')} 
+          className={`flex items-center gap-3 ${activePage === 'parent' ? 'cursor-default' : 'cursor-pointer active:opacity-80'}`}
+        >
           <div className="w-8 h-8 bg-[#FAF7F2] rounded-lg flex items-center justify-center text-[#7A8C5C] font-bold shadow-sm">S</div>
           <div>
             <h1 className="font-extrabold text-lg text-[#FAF7F2] leading-none">SainsCerdas</h1>
@@ -113,10 +140,14 @@ const App = () => {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#FAF7F2] border-r border-[#D6CFC4] flex flex-col justify-between transform transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div>
           {/* DESKTOP HEADER LOGO */}
-          <div onClick={() => setActivePage('profil')} className="hidden md:flex h-20 items-center px-6 border-b border-[#D6CFC4] bg-[#F5F0E8] rounded-b-xl cursor-pointer hover:bg-[#FAF7F2] transition-colors group" title="Lihat Profil Saya">
-            <div className="w-10 h-10 bg-[#7A8C5C] rounded-xl flex items-center justify-center text-[#FAF7F2] font-bold mr-3 shadow-md group-hover:scale-105 transition-transform">S</div>
+          <div 
+            onClick={() => activePage !== 'parent' && setActivePage('profil')} 
+            className={`hidden md:flex h-20 items-center px-6 border-b border-[#D6CFC4] bg-[#F5F0E8] rounded-b-xl transition-colors group ${activePage === 'parent' ? 'cursor-default' : 'cursor-pointer hover:bg-[#FAF7F2]'}`}
+            title={activePage === 'parent' ? "Sesi Pemantauan Aktif" : "Lihat Profil Saya"}
+          >
+            <div className="w-10 h-10 bg-[#7A8C5C] rounded-xl flex items-center justify-center text-[#FAF7F2] font-bold mr-3 shadow-md">S</div>
             <div>
-              <h1 className="font-extrabold text-xl text-[#2C1A0E] leading-tight group-hover:text-[#7A8C5C] transition-colors">SainsCerdas</h1>
+              <h1 className="font-extrabold text-xl text-[#2C1A0E] leading-tight">SainsCerdas</h1>
               <p className="text-xs text-[#6B5C4E] font-bold flex items-center gap-1">
                 {activePage === 'parent' ? '👨‍👩‍👦 Ruang Pantau' : 'Ilmuwan Cilik'} <span className="text-[10px]">👤</span>
               </p>
@@ -125,42 +156,59 @@ const App = () => {
 
           {/* Navigasi Menu Samping */}
           <nav className="p-6 space-y-3 overflow-y-auto mt-2">
-            <p className="text-xs font-semibold text-[#6B5C4E] mb-3 px-2 uppercase tracking-wider">Menu Utama</p>
-            <button onClick={() => { setActivePage('home'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === 'home' ? 'bg-[#7A8C5C] text-white shadow-sm' : 'text-[#6B5C4E] hover:bg-[#FAF7F2]'}`}><span>🏠</span> Beranda</button>
-            <button onClick={() => { setActivePage('chatbot'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === 'chatbot' ? 'bg-[#7A8C5C] text-white shadow-sm' : 'text-[#6B5C4E] hover:bg-[#FAF7F2]'}`}><span>💬</span> Chatbot</button>
-            <button onClick={() => { setActivePage('topik'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === 'topik' ? 'bg-[#7A8C5C] text-white shadow-sm' : 'text-[#6B5C4E] hover:bg-[#FAF7F2]'}`}><span>📚</span> Jelajahi Topik</button>
-            <button onClick={() => { setActivePage('quiz'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === 'quiz' ? 'bg-[#7A8C5C] text-white shadow-sm' : 'text-[#6B5C4E] hover:bg-[#FAF7F2]'}`}><span>🎯</span> Misi Kuis</button>
+            <p className="text-xs font-semibold text-[#6B5C4E] mb-3 px-2 uppercase tracking-wider">
+              {activePage === 'parent' ? 'Menu Orang Tua' : 'Menu Utama'}
+            </p>
             
-            {/* 💡 SAKLAR LINK JIKA PARENT DASHBOARD SEDANG AKTIF */}
-            {activePage === 'parent' && (
-              <button onClick={() => setActivePage('parent')} className="w-full flex items-center gap-3 px-3 py-3 rounded-full font-black text-sm transition-all bg-[#2C1A0E] text-[#FAF7F2] shadow-md animate-fadeIn"><span>📊</span> Ruang Pantau</button>
+            {/* 🔒 KONDISIONAL LOCK NAVIGASI: Jika Mode Orang Tua aktif, sembunyikan menu anak-anak */}
+            {activePage === 'parent' ? (
+              <button 
+                onClick={() => setActivePage('parent')} 
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-full font-black text-sm transition-all bg-[#2C1A0E] text-[#FAF7F2] shadow-md"
+              >
+                <span>📊</span> Ruang Pantau Anak
+              </button>
+            ) : (
+              <>
+                <button onClick={() => { setActivePage('home'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === 'home' ? 'bg-[#7A8C5C] text-white shadow-sm' : 'text-[#6B5C4E] hover:bg-[#FAF7F2]'}`}><span>🏠</span> Beranda</button>
+                <button onClick={() => { setActivePage('chatbot'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === 'chatbot' ? 'bg-[#7A8C5C] text-white shadow-sm' : 'text-[#6B5C4E] hover:bg-[#FAF7F2]'}`}><span>💬</span> Chatbot</button>
+                <button onClick={() => { setActivePage('topik'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === 'topik' ? 'bg-[#7A8C5C] text-white shadow-sm' : 'text-[#6B5C4E] hover:bg-[#FAF7F2]'}`}><span>📚</span> Jelajahi Topik</button>
+                <button onClick={() => { setActivePage('quiz'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === 'quiz' ? 'bg-[#7A8C5C] text-white shadow-sm' : 'text-[#6B5C4E] hover:bg-[#FAF7F2]'}`}><span>🎯</span> Misi Kuis</button>
+              </>
             )}
           </nav>
         </div>
 
-        {/* Daily Check-In Widget */}
-        <div className="p-6 mx-4 mb-2 bg-[#7A8C5C] text-[#FAF7F2] rounded-3xl shadow-lg">
-          <h3 className="font-bold text-sm mb-1">Daily Check-In!</h3>
-          <p className="text-xs text-[#FAF7F2]/90 mb-4 leading-relaxed">Selesaikan jurnal harianmu dan klaim bintang emas.</p>
-          <button onClick={() => { setActivePage('checkin'); setIsMobileMenuOpen(false); }} className="w-full bg-[#FAF7F2] text-[#7A8C5C] text-sm font-semibold py-2 rounded-full hover:bg-white transition-colors shadow-sm">
-            Mulai Check-In
-          </button>
-        </div>
+        {/* Daily Check-In Widget: Hanya muncul jika bukan dalam Mode Orang Tua */}
+        {activePage !== 'parent' && (
+          <div className="p-6 mx-4 mb-2 bg-[#7A8C5C] text-[#FAF7F2] rounded-3xl shadow-lg animate-fadeIn">
+            <h3 className="font-bold text-sm mb-1">Daily Check-In!</h3>
+            <p className="text-xs text-[#FAF7F2]/90 mb-4 leading-relaxed">Selesaikan jurnal harianmu dan klaim bintang emas.</p>
+            <button onClick={() => { setActivePage('checkin'); setIsMobileMenuOpen(false); }} className="w-full bg-[#FAF7F2] text-[#7A8C5C] text-sm font-semibold py-2 rounded-full hover:bg-white transition-colors shadow-sm">
+              Mulai Check-In
+            </button>
+          </div>
+        )}
 
-        {/* --- BAGIAN BAWAH SIDEBAR (PARENT GATE & AUTH BUTTONS) --- */}
+        {/* --- BAGIAN BAWAH SIDEBAR (DYNAMIC SWITCHER & AUTH BUTTONS) --- */}
         <div className="p-6 border-t border-[#D6CFC4] bg-[#F5F0E8]/30 space-y-3">
           
-          {/* 👨‍👩‍👦 BUTTON TRIGGER PARENT MODE ACCORDING TO SCHEMA COLUMN */}
-          <button 
-            onClick={() => setIsParentModalOpen(true)}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 text-xs font-black rounded-2xl border transition-all shadow-sm active:scale-95 ${
-              activePage === 'parent' 
-                ? 'bg-[#7A8C5C] border-transparent text-white' 
-                : 'bg-[#FAF7F2] border-[#D6CFC4] text-[#6B5C4E] hover:bg-white hover:text-[#2C1A0E]'
-            }`}
-          >
-            <span>🔒</span> Mode Orang Tua
-          </button>
+          {/* 🔄 SAKLAR DINAMIS SINKRON SISI USER INTERFACE */}
+          {activePage === 'parent' ? (
+            <button 
+              onClick={handleSwitchToStudentMode}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-black rounded-2xl border bg-[#7A8C5C] border-transparent text-white shadow-md hover:bg-[#66754D] transition-all active:scale-95"
+            >
+              <span>👦</span> Kembali Ke Mode Anak
+            </button>
+          ) : (
+            <button 
+              onClick={() => setIsParentModalOpen(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-black rounded-2xl border bg-[#FAF7F2] border-[#D6CFC4] text-[#6B5C4E] hover:bg-white hover:text-[#2C1A0E] transition-all shadow-sm active:scale-95"
+            >
+              <span>🔒</span> Mode Orang Tua
+            </button>
+          )}
 
           {session.token ? (
             <div className="flex flex-col gap-2 text-center text-xs">
@@ -184,13 +232,10 @@ const App = () => {
       {activePage === 'quiz' && <QuizPage />}
       {activePage === 'profil' && <ProfilePage session={session} />}
       {activePage === 'topik' && <TopikPage />}
-      
-      {/* 🟢 PERBAIKAN 1: Bersihkan pengoperan props sisa mockup agar ChatbotPage membaca state lokal AI-nya sendiri */}
       {activePage === 'chatbot' && <ChatbotPage session={session} />}
-
       {activePage === 'checkin' && <CheckInPage onClose={() => setActivePage('home')} />}
-
-      {/* 🟢 PERBAIKAN 2: Melepas komentar komponen <ParentPage /> dan menghapus isi tag div placeholder lama */}
+      
+      {/* 📊 HALAMAN MONITORING REAL DATA LIST */}
       {activePage === 'parent' && <ParentPage />}
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />

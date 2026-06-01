@@ -1,12 +1,13 @@
+// src/pages/CheckInPage.jsx
 import React, { useState, useEffect } from 'react';
 
 const CheckInPage = ({ onClose }) => {
   const [step, setStep] = useState(1);
   const totalSteps = 4;
 
-  // --- State Pengikat Data Interaktif Baru ---
+  // --- State Pengikat Data Interaktif ---
   const [checkInGoal, setCheckInGoal] = useState(localStorage.getItem('user_daily_goal') || '');
-  const [feeling, setFeeling] = useState('😐'); // Set default ke netral/biasa
+  const [feeling, setFeeling] = useState('😐'); 
   const [difficulty, setDifficulty] = useState(5);
   const [userQuestion, setUserQuestion] = useState('');
 
@@ -19,29 +20,46 @@ const CheckInPage = ({ onClose }) => {
     { emoji: '🤩', label: 'Semangat' }
   ];
 
-  const [sliderValue, setSliderValue] = useState(2); // Default index 2 untuk '😐'
+  // 🪐 15 TOPIK RESMI - DISELARASKAN DENGAN OBJECT KEYS DI TOPIKPAGE.JSX
+  const goalLabels = { 
+    adaptasi_makhluk_hidup: '🐾 Adaptasi Makhluk Hidup',
+    peredaran_darah: '❤️ Peredaran Darah Manusia',
+    peristiwa_alam: '🌋 Peristiwa Alam & Dampaknya',
+    sumber_daya_alam: '🌾 Sumber Daya Alam & Kegunaannya',
+    alat_pencernaan: '🍔 Alat Pencernaan & Makanan',
+    benda_sifatnya: '📦 Benda & Sifat-Sifatnya',
+    bumi_peristiwa_alam: '🪐 Bumi & Peristiwa Alam',
+    air: '💧 Air & Siklus Hidrologi',
+    alat_tubuh_manusia_hewan: '🦴 Alat Tubuh Manusia & Hewan',
+    tumbuhan_hijau: '🌿 Tumbuhan Hijau & Fotosintesis',
+    gaya_gerak_energi: '⚡ Gaya, Gerak, dan Energi',
+    cahaya_sifatnya: '🔦 Cahaya & Sifat-Sifatnya',
+    alat_pernapasan: '🌬️ Alat Pernapasan Manusia & Hewan',
+    organ_tubuh_manusia_hewan: '🧬 Organ Tubuh Manusia & Hewan',
+    sistem_pernapasan: '🫁 Sistem Pernapasan Manusia'
+  };
 
-  // Update emoji ketika nilai slider digeser manual
+  const [sliderValue, setSliderValue] = useState(2); 
+
   const handleSliderChange = (e) => {
     const val = parseInt(e.target.value, 10);
     setSliderValue(val);
     setFeeling(emojiList[val].emoji);
   };
 
-  // Update posisi slider ketika ikon emoji diklik langsung
   const handleEmojiClick = (emoji, index) => {
     setFeeling(emoji);
     setSliderValue(index);
   };
 
-  // FUNGSI EKSEKUSI API AMAN & SINKRON
   const nextStep = async () => {
     if (step === totalSteps) {
       try {
         const storageId = localStorage.getItem('student_id');
         const userId = storageId ? parseInt(storageId, 10) : 1;
 
-        console.log("📡 Menembak API Check-in dengan ID Pasti:", userId);
+        // Menyelaraskan teks judul materi berdasarkan 15 ID pilihan resmi
+        const namaMateriPilihan = goalLabels[checkInGoal] || 'Materi Sains';
 
         const response = await fetch('http://localhost:5000/api/checkin/daily', {
           method: 'POST',
@@ -49,50 +67,46 @@ const CheckInPage = ({ onClose }) => {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({ user_id: userId })
+          body: JSON.stringify({ 
+            user_id: userId,
+            materi_dipelajari: namaMateriPilihan, 
+            mood: feeling,                        
+            tingkat_kesulitan: difficulty         
+          })
         });
 
         const result = await response.json();
-        console.log("📥 Respons murni dari server check-in:", result);
-
-        // Format stempel tanggal hari ini: YYYY-MM-DD
         const tanggalHariIni = new Date().toLocaleDateString('sv-SE');
 
-        // 🌟 JALUR A: JIKA BERHASIL CHECK-IN BARU (Status 200/201)
         if (response.ok && result.success) {
-          // 🧼 Simpan data jurnal beserta STEMPEL TANGGALNYA
           localStorage.setItem('user_daily_goal', checkInGoal);
           localStorage.setItem('user_feeling', feeling);
           localStorage.setItem('user_difficulty', difficulty);
           localStorage.setItem('user_saved_question', userQuestion);
-          localStorage.setItem('tanggal_terakhir_checkin', tanggalHariIni); // ✨ Stempel Kunci
+          localStorage.setItem('tanggal_terakhir_checkin', tanggalHariIni); 
 
-          alert(result.message || "Check-in harian berhasil disimpan! 🚀");
+          alert(result.message || "Check-in harian berhasil disimpan ke database! 🚀");
           if (onClose) onClose();
           return;
         }
 
-        // 🌟 JALUR B: JIKA SERVER MENOLAK KARENA SUDAH ABSEN HARI INI (Status 400 tapi database terisi)
         if (result && result.message) {
-          // Tetap amankan data interaktif ke lokal cache biar profil & chatbot tetap sinkron hari ini
           localStorage.setItem('user_daily_goal', checkInGoal);
           localStorage.setItem('user_feeling', feeling);
           localStorage.setItem('user_difficulty', difficulty);
           localStorage.setItem('user_saved_question', userQuestion);
-          localStorage.setItem('tanggal_terakhir_checkin', tanggalHariIni); // ✨ Stempel Kunci dipasang juga di sini
+          localStorage.setItem('tanggal_terakhir_checkin', tanggalHariIni); 
 
-          // Semburkan pesan ramah anak asli dari backend kelompokmu!
           alert(`Info Jurnal: ${result.message}`);
           if (onClose) onClose();
           return;
         }
 
-        // Jika ada penolakan aneh lain tanpa pesan
         throw new Error("Respons server tidak dikenali.");
 
       } catch (err) {
         console.error("❌ Eror fatal pada Fetch Check-In:", err.message);
-        alert("Waduh, gagal terhubung ke server port 5000. Pastikan backend kamu menyala ya!");
+        alert("Waduh, gagal terhubung ke server port 5000. Pastikan backend Express kelompokmu sudah dinyalakan!");
       }
     } else {
       setStep((s) => Math.min(s + 1, totalSteps));
@@ -101,34 +115,48 @@ const CheckInPage = ({ onClose }) => {
 
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
-  // ALUR RENDERING STEP JURNAL
   const renderStep = () => {
     switch (step) {
       case 1:
         return (
-          <div className="flex flex-col gap-3.5 animate-fadeIn">
-            <h2 className="text-xl sm:text-2xl font-black text-[#2C1A0E] mb-2 leading-snug">Apa tujuan belajarmu hari ini?</h2>
-            {[
-              { id: 'ekosistem', label: 'Memahami Ekosistem', icon: '🌿' },
-              { id: 'fisika', label: 'Eksperimen Fisika', icon: '⚡' },
-              { id: 'tatasurya', label: 'Mengenal Tata Surya', icon: '🪐' },
-              { id: 'anatomi', label: 'Belajar Anatomi', icon: '🦴' },
-            ].map((item) => (
-              <button 
-                key={item.id} 
-                type="button"
-                onClick={() => setCheckInGoal(item.id)}
-                className={`w-full flex items-center justify-between p-4 border rounded-2xl transition-all font-bold group text-sm sm:text-base ${checkInGoal === item.id ? 'border-[#7A8C5C] bg-[#7A8C5C]/10 ring-2 ring-[#7A8C5C]/5' : 'bg-white border-[#D6CFC4] hover:border-[#7A8C5C]/50'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{item.icon}</span>
-                  <span className="text-[#2C1A0E]">{item.label}</span>
-                </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${checkInGoal === item.id ? 'border-[#7A8C5C]' : 'border-[#D6CFC4]'}`}>
-                  {checkInGoal === item.id && <div className="w-2.5 h-2.5 bg-[#7A8C5C] rounded-full"></div>}
-                </div>
-              </button>
-            ))}
+          <div className="flex flex-col gap-2.5 animate-fadeIn pt-1">
+            <h2 className="text-xl font-black text-[#2C1A0E] mb-1 leading-snug">Apa tujuan belajarmu hari ini?</h2>
+            
+            {/* AREA CONTAINER SCROLLBAR: Membungkus 15 list materi hasil sinkronisasi */}
+            <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
+              {[
+                { id: 'adaptasi_makhluk_hidup', label: 'Adaptasi Makhluk Hidup', icon: '🐾' },
+                { id: 'peredaran_darah', label: 'Peredaran Darah', icon: '❤️' },
+                { id: 'peristiwa_alam', label: 'Peristiwa Alam', icon: '🌋' },
+                { id: 'sumber_daya_alam', label: 'Sumber Daya Alam & Kegunaannya', icon: '🌾' },
+                { id: 'alat_pencernaan', label: 'Alat Pencernaan & Makanan', icon: '🍔' },
+                { id: 'benda_sifatnya', label: 'Benda & Sifatnya', icon: '📦' },
+                { id: 'bumi_peristiwa_alam', label: 'Bumi & Peristiwa Alam', icon: '🪐' },
+                { id: 'air', label: 'Air & Siklus Hidrologi', icon: '💧' },
+                { id: 'alat_tubuh_manusia_hewan', label: 'Alat Tubuh Manusia & Hewan', icon: 'Bone' },
+                { id: 'tumbuhan_hijau', label: 'Tumbuhan Hijau (Fotosintesis)', icon: '🌿' },
+                { id: 'gaya_gerak_energi', label: 'Gaya, Gerak, dan Energi', icon: '⚡' },
+                { id: 'cahaya_sifatnya', label: 'Cahaya & Sifat-Sifatnya', icon: '🔦' },
+                { id: 'alat_pernapasan', label: 'Alat Pernapasan Manusia/Hewan', icon: '🌬️' },
+                { id: 'organ_tubuh_manusia_hewan', label: 'Organ Tubuh Manusia & Hewan', icon: '🧬' },
+                { id: 'sistem_pernapasan', label: 'Sistem Pernapasan Hidung-Paru', icon: '🫁' }
+              ].map((item) => (
+                <button 
+                  key={item.id} 
+                  type="button"
+                  onClick={() => setCheckInGoal(item.id)}
+                  className={`w-full flex items-center justify-between p-3.5 border rounded-2xl transition-all font-bold text-xs sm:text-sm ${checkInGoal === item.id ? 'border-[#7A8C5C] bg-[#7A8C5C]/10 ring-2 ring-[#7A8C5C]/5' : 'bg-white border-[#D6CFC4] hover:border-[#7A8C5C]/50'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{item.icon === 'Bone' ? '🦴' : item.icon}</span>
+                    <span className="text-[#2C1A0E] text-left">{item.label}</span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${checkInGoal === item.id ? 'border-[#7A8C5C]' : 'border-[#D6CFC4]'}`}>
+                    {checkInGoal === item.id && <div className="w-2 bg-[#7A8C5C] rounded-full h-2"></div>}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         );
 
@@ -175,9 +203,10 @@ const CheckInPage = ({ onClose }) => {
           1: "Sangat Gampang, Prof!", 2: "Mudah Sekali!", 3: "Bisa Aku Atasi", 
           4: "Normal Saja", 5: "Lumayan Menantang, Prof!", 6: "Cukup Sulit", 7: "Butuh Bantuan Penuh"
         };
+        const targetTopikNama = goalLabels[checkInGoal] || 'Materi Sains';
         return (
           <div className="flex flex-col items-center gap-6 animate-fadeIn text-center">
-            <h2 className="text-xl sm:text-2xl font-black text-[#2C1A0E] leading-snug">Seberapa sulit materi Fotosintesis bagimu?</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-[#2C1A0E] leading-snug">Seberapa sulit materi <span className="text-[#7A8C5C]">{targetTopikNama}</span> bagimu?</h2>
             <div className="text-7xl font-black text-[#7A8C5C] my-2 bg-[#7A8C5C]/5 w-24 h-24 rounded-full flex items-center justify-center border border-[#7A8C5C]/20 shadow-inner">
               {difficulty}
             </div>
@@ -206,7 +235,7 @@ const CheckInPage = ({ onClose }) => {
             <textarea 
               value={userQuestion}
               onChange={(e) => setUserQuestion(e.target.value)}
-              placeholder="Prof, mengapa warna daun bisa berubah dari hijau menjadi kuning saat layu?..."
+              placeholder="Prof, bolehkah jelaskan lebih detail tentang materi yang aku pilih tadi?..."
               className="w-full h-40 p-4 bg-white border border-[#D6CFC4] rounded-2xl outline-none focus:border-[#7A8C5C] focus:ring-2 focus:ring-[#7A8C5C]/20 text-[#2C1A0E] text-sm font-medium resize-none shadow-inner"
             ></textarea>
             <div className="p-3.5 bg-[#FDE8DC] rounded-xl flex gap-2.5 items-start border border-[#C4621D]/10">

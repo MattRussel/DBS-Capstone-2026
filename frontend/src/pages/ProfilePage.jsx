@@ -1,26 +1,37 @@
+// src/pages/ProfilePage.jsx
 import React, { useState, useEffect } from 'react';
 
 const ProfilePage = ({ session }) => {
   const userId = localStorage.getItem('student_id') || 1;
 
-  
   // 1. VALIDASI PERPUTARAN HARI BERBASIS FRONTEND LOCAL
-  
   const tanggalHariIni = new Date().toLocaleDateString('sv-SE');
   const tanggalTerakhirCheckIn = localStorage.getItem('tanggal_terakhir_checkin');
 
-  // Evaluasi kecocokan hari untuk mereset tampilan jurnal secara otomatis
+  // 🔄 OTOMATISASI RESET: Jika tanggal berganti, validHariIni otomatis FALSE dan tampilan langsung kosong
   const validHariIni = tanggalTerakhirCheckIn === tanggalHariIni;
 
   const currentGoal = validHariIni ? localStorage.getItem('user_daily_goal') : null;
   const savedFeeling = validHariIni ? localStorage.getItem('user_feeling') : '😐';
   const savedDifficulty = validHariIni ? localStorage.getItem('user_difficulty') : '-';
 
+  // 🟢 PERBAIKAN 1: Menyelaraskan 15 Judul Topik Resmi dengan Semua Komponen
   const goalLabels = { 
-    ekosistem: '🌿 Memahami Ekosistem Sawah & Hutan', 
-    fisika: '⚡ Eksperimen Gaya Fisika', 
-    tatasurya: '🪐 Mengenal Anggota Tata Surya', 
-    anatomi: '🦴 Belajar Anatomi Tubuh Manusia' 
+    adaptasi_makhluk_hidup: '🐾 Adaptasi Makhluk Hidup',
+    peredaran_darah: '❤️ Peredaran Darah Manusia',
+    peristiwa_alam: '🌋 Peristiwa Alam & Dampaknya',
+    sumber_daya_alam: '🌾 Sumber Daya Alam & Kegunaannya',
+    alat_pencernaan: '🍔 Alat Pencernaan & Makanan',
+    benda_sifatnya: '📦 Benda & Sifat-Sifatnya',
+    bumi_peristiwa_alam: '🪐 Bumi & Peristiwa Alam',
+    air: '💧 Air & Siklus Hidrologi',
+    alat_tubuh_manusia_hewan: '🦴 Alat Tubuh Manusia & Hewan',
+    tumbuhan_hijau: '🌿 Tumbuhan Hijau & Fotosintesis',
+    gaya_gerak_energi: '⚡ Gaya, Gerak, dan Energi',
+    cahaya_sifatnya: '🔦 Cahaya & Sifat-Sifatnya',
+    alat_pernapasan: '🌬️ Alat Pernapasan Manusia & Hewan',
+    organ_tubuh_manusia_hewan: '🧬 Organ Tubuh Manusia & Hewan',
+    sistem_pernapasan: '🫁 Sistem Pernapasan Manusia'
   };
 
   // --- STATE DATA PROFILE ---
@@ -32,15 +43,12 @@ const ProfilePage = ({ session }) => {
     lencana_terbuka: []
   });
 
-  
-  // 2. FETCH DATA LIVE KUIS DARI TIDB CLOUD
-  
+  // 2. FETCH DATA LIVE KUIS DARI DATABASE
   useEffect(() => {
     if (session.isGuest) return;
 
     const ambilDataProfilDanCheckIn = async () => {
       try {
-        // Ambil data statistik dashboard kuis yang sudah terdaftar aman di backend kamu
         const response = await fetch(`http://localhost:5000/api/quests/dashboard?user_id=${userId}`);
         
         if (response.ok) {
@@ -59,7 +67,7 @@ const ProfilePage = ({ session }) => {
           }
         }
 
-        // KUNCI AMAN: Mengikat status check-in ke validasi tanggal lokal laptop anak
+        // Mengunci status ke tanggal lokal anak hari ini
         setSudahCheckIn(validHariIni);
 
       } catch (error) {
@@ -79,7 +87,7 @@ const ProfilePage = ({ session }) => {
     <div className="flex-1 p-4 sm:p-8 overflow-y-auto bg-[#F5F0E8] font-['Nunito'] text-[#2C1A0E]">
       <div className="max-w-3xl mx-auto bg-[#FAF7F2] border border-[#D6CFC4] rounded-[40px] p-6 sm:p-8 shadow-sm space-y-6">
         
-        {/* 1. KEPALA IDENTITAS USER */}
+        {/* 1. KEPALA IDENTITAS USER ANAK */}
         <div className="flex items-center gap-4 pb-5 border-b border-[#D6CFC4]">
           <div className="w-16 h-16 bg-[#7A8C5C] rounded-full flex items-center justify-center text-white font-black text-2xl shadow-md border-2 border-white shrink-0">
             {session.isGuest ? 'G' : (session.name ? session.name[0].toUpperCase() : 'U')}
@@ -101,12 +109,12 @@ const ProfilePage = ({ session }) => {
               )}
             </div>
             <p className="text-xs font-bold text-[#6B5C4E] uppercase tracking-wider mt-0.5">
-              Peran: {session.isGuest ? 'Akses Terbatas' : `Akun ${session.role || 'anak'}`}
+              Peran: {session.isGuest ? 'Akses Terbatas' : 'Ilmuwan Cilik 👤'}
             </p>
           </div>
         </div>
 
-        {/* 2. DOCK INFORMASI INTEGRASI CHECK-IN */}
+        {/* 2. DOCK INFORMASI INTEGRASI CHECK-IN ANAK */}
         <div className="p-5 bg-white border border-[#D6CFC4] rounded-3xl shadow-inner space-y-3">
           <h3 className="text-xs font-black text-[#6B5C4E] uppercase tracking-wider flex items-center gap-1">
             📋 Ringkasan Jurnal Belajar Hari Ini
@@ -116,7 +124,8 @@ const ProfilePage = ({ session }) => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm font-bold text-[#2C1A0E] pt-1">
               <div className="p-3 bg-[#FAF7F2] border rounded-xl">
                 <span className="text-[#6B5C4E] text-[10px] block uppercase mb-0.5">Target Materi</span>
-                {goalLabels[currentGoal] || '🌿 Memahami Ekosistem Sawah & Hutan'}
+                {/* 🟢 PERBAIKAN 2: Membaca Pemetaan 15 Teks Materi Secara Presisi */}
+                {goalLabels[currentGoal] || currentGoal || '🌿 Memahami Sains'}
               </div>
               <div className="p-3 bg-[#FAF7F2] border rounded-xl text-center">
                 <span className="text-[#6B5C4E] text-[10px] block uppercase mb-0.5">Kondisi Perasaan</span>
@@ -130,80 +139,57 @@ const ProfilePage = ({ session }) => {
               </div>
             </div>
           ) : (
-            <div className="text-xs text-amber-600 font-bold bg-amber-50/60 p-3 rounded-xl border border-amber-200/50 leading-relaxed">
+            <div className="text-xs text-amber-600 font-bold bg-amber-50/60 p-3 rounded-xl border border-amber-200/50 leading-relaxed animate-fadeIn">
               ⚠️ Kamu belum mengisi jurnal check-in harian di Beranda Utama untuk hari ini. Yuk, lakukan check-in terlebih dahulu untuk mengaktifkan jurnal barumu! 📝
             </div>
           )}
         </div>
 
-        {/* 3. KONTEN TAMPILAN ADAPTIF BERDASARKAN PERAN */}
-        {session.role === 'orangtua' ? (
-          <div className="space-y-4">
-            <h3 className="font-extrabold text-sm text-[#2C1A0E] uppercase tracking-wide">📈 Ruang Pantau Wali Murid</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-5 bg-white border border-[#D6CFC4] rounded-2xl text-center shadow-sm">
-                <span className="text-2xl">📝</span>
-                <h4 className="text-[11px] font-bold text-[#6B5C4E] uppercase tracking-wider mt-1">Rata-rata Kuis Anak</h4>
-                <div className="text-3xl font-black text-[#7A8C5C] mt-1">
-                  {stats.total_misi_selesai > 0 ? `${stats.rata_skor} / 100` : 'Belum Ada Kuis'}
-                </div>
+        {/* 3. KONTEN LEVEL & KEPATUHAN LENCANA ANAK */}
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs font-black text-[#6B5C4E]">
+              <span>Tingkat Kemajuan Ilmuwan (Level {stats.total_misi_selesai + 1})</span>
+              <span>{stats.total_misi_selesai * 33}% Menuju Level Berikutnya</span>
+            </div>
+            <div className="w-full bg-[#D6CFC4]/40 h-3 rounded-full overflow-hidden shadow-inner">
+              <div 
+                className="h-full bg-gradient-to-r from-[#7A8C5C] to-[#9eb07a] rounded-full transition-all duration-500" 
+                style={{ width: `${Math.min(stats.total_misi_selesai * 33, 100)}%` }} 
+              />
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <h3 className="font-extrabold text-sm text-[#2C1A0E] mb-3 uppercase tracking-wide">🏅 Lemari Lencana Kamu</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Solar Master") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
+                <span className="text-3xl mb-1">☀️</span>
+                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Solar Master</h4>
+                <p className="text-[9px] text-[#6B5C4E] font-bold">
+                  {stats.lencana_terbuka.includes("Solar Master") ? "Materi Tata Surya" : "Belum Terkunci"}
+                </p>
               </div>
-              <div className="p-5 bg-white border border-[#D6CFC4] rounded-2xl text-center shadow-sm">
-                <span className="text-2xl">🏅</span>
-                <h4 className="text-[11px] font-bold text-[#6B5C4E] uppercase tracking-wider mt-1">Misi Berhasil Diselesaikan</h4>
-                <div className="text-3xl font-black text-[#2C1A0E] mt-1">{stats.total_misi_selesai} Materi</div>
+
+              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Botani Cilik") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
+                <span className="text-3xl mb-1">🌱</span>
+                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Botani Cilik</h4>
+                <p className="text-[9px] text-[#6B5C4E] font-bold">
+                  {stats.lencana_terbuka.includes("Botani Cilik") ? "Tumbuhan Hijau" : "Belum Terkunci"}
+                </p>
+              </div>
+
+              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Eco Warrior") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
+                <span className="text-3xl mb-1">🌍</span>
+                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Eco Warrior</h4>
+                <p className="text-[9px] text-[#6B5C4E] font-bold">
+                  {stats.lencana_terbuka.includes("Eco Warrior") ? "Lingkungan Hidup" : "Belum Terkunci"}
+                </p>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Indikator Bar Pengalaman Level Up */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-black text-[#6B5C4E]">
-                <span>Tingkat Kemajuan Ilmuwan (Level {stats.total_misi_selesai + 1})</span>
-                <span>{stats.total_misi_selesai * 33}% Menuju Level Berikutnya</span>
-              </div>
-              <div className="w-full bg-[#D6CFC4]/40 h-3 rounded-full overflow-hidden shadow-inner">
-                <div 
-                  className="h-full bg-gradient-to-r from-[#7A8C5C] to-[#9eb07a] rounded-full transition-all duration-500" 
-                  style={{ width: `${Math.min(stats.total_misi_selesai * 33, 100)}%` }} 
-                />
-              </div>
-            </div>
+        </div>
 
-            {/* Lemari Koleksi Medali/Lencana */}
-            <div className="pt-2">
-              <h3 className="font-extrabold text-sm text-[#2C1A0E] mb-3 uppercase tracking-wide">🏅 Lemari Lencana Kamu</h3>
-              <div className="grid grid-cols-3 gap-3">
-                <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Solar Master") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
-                  <span className="text-3xl mb-1">☀️</span>
-                  <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Solar Master</h4>
-                  <p className="text-[9px] text-[#6B5C4E] font-bold">
-                    {stats.lencana_terbuka.includes("Solar Master") ? "Materi Tata Surya" : "Belum Terkunci"}
-                  </p>
-                </div>
-
-                <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Botani Cilik") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
-                  <span className="text-3xl mb-1">🌱</span>
-                  <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Botani Cilik</h4>
-                  <p className="text-[9px] text-[#6B5C4E] font-bold">
-                    {stats.lencana_terbuka.includes("Botani Cilik") ? "Tumbuhan Hijau" : "Belum Terkunci"}
-                  </p>
-                </div>
-
-                <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Eco Warrior") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
-                  <span className="text-3xl mb-1">🌍</span>
-                  <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Eco Warrior</h4>
-                  <p className="text-[9px] text-[#6B5C4E] font-bold">
-                    {stats.lencana_terbuka.includes("Eco Warrior") ? "Lingkungan Hidup" : "Belum Terkunci"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Info Tambahan Mode Guest */}
         {session.isGuest && (
           <div className="p-3.5 bg-[#FDE8DC] border border-[#C4621D]/20 text-[#C4621D] text-xs font-bold rounded-xl text-center shadow-inner">
             🔒 Riwayat kuis permanen dinonaktifkan di mode Guest. Yuk, daftar akun untuk simpan lencanamu!

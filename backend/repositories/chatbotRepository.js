@@ -37,18 +37,19 @@ export const saveChatMessage = async (user_id, message, botResponse, metadata = 
     console.log("⏳ [Supabase Insert] Mencoba menyimpan ke chatbot_history...");
     console.log(`Detail Data -> User: ${user_id}, Topik: ${topik}`);
 
+    // Contoh Logika Query di Backend Express kelompokmu:
     const { data, error } = await supabase
       .from('chatbot_history')
       .insert([
         {
-          user_id: parseInt(user_id, 10), // 🟢 Gunakan user_id yang sinkron
-          message: message,
-          bot_response: botResponse,
-          topik: topik || null, // ⚠️ Pastikan teks ini ada di tabel knowledge agar FK tidak jebol
-          subtopik: subtopik || null,
-          konteks: konteks || null,
-          jenis_pertanyaan: jenisPertanyaan || null,
-          kompleksitas: kompleksitas || null
+          user_id: req.body.user_id,
+          message: req.body.message,               // Kolom text (Non-nullable)
+          bot_response: aiResponseText,            // Kolom text (Non-nullable)
+          topik: aiPredictedTopic,                 // Kolom varchar (Nullable)
+          subtopik: aiPredictedSubTopic || null,   // Kolom varchar (Nullable)
+          konteks: finalContextTag || 'normal',    // Kolom text (Tempat menyaring kata 'peringatan/kasar')
+          jenis_pertanyaan: ragQueryType || null,  // Kolom varchar (Nullable)
+          kompleksitas: aiComplexityLevel || null  // Kolom varchar (Nullable)
         }
       ])
       .select()

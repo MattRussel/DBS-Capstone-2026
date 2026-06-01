@@ -7,34 +7,60 @@ const ChatbotPage = ({ session }) => {
     content: 'Halo Ilmuwan Cilik! 👋 Aku Profesor Cerdas. Di laboratorium ini, kamu bebas menanyakan apa saja tentang materi sains IPA! Mulai dari sistem pernapasan, tumbuhan, siklus air, hingga fenomena alam di bumi. Yuk, tulis hal yang membuatmu penasaran di bawah ini! 🔬✨' 
   };
 
-  // --- STATE MANAGEMENT ---
-  const [currentSessionId, setCurrentSessionId] = useState('session_default');
+  // 📋 Kunci unik LocalStorage yang disesuaikan dengan ID anak yang sedang login agar tidak tertukar
+  const STORAGE_KEY = `sainscerdas_chat_history_${session.id || 'guest'}`;
+  const SESSION_KEY = `sainscerdas_current_session_${session.id || 'guest'}`;
+
+  // --- STATE MANAGEMENT (DIINTEGRASIKAN DENGAN LOCALSTORAGE) ---
+  const [currentSessionId, setCurrentSessionId] = useState(() => {
+    return localStorage.getItem(SESSION_KEY) || 'session_default';
+  });
+
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 📋 Struktur Riwayat Obrolan: Setiap objek menyimpan array messages uniknya sendiri
-  const [chatHistory, setChatHistory] = useState([
-    { 
-      id: "session_default", 
-      title: "✨ Percakapan Baru", 
-      messages: [defaultWelcomeMessage] 
-    },
-    { 
-      id: "session_1", 
-      title: "🐾 Tentang Adaptasi Makhluk Hidup", 
-      messages: [
-        { role: 'assistant', content: 'Yuk, tanyakan tentang adaptasi makhluk hidup!' },
-        { role: 'user', content: 'Kenapa bunglon berubah warna?' },
-        { role: 'assistant', content: 'Bunglon berubah warna untuk mengelabui musuh atau menyesuaikan diri dengan lingkungannya (mimikri)! 🦎', topicTag: 'adaptasi makhluk hidup', confidenceTag: '94.2%', similarityTag: '88.50%' }
-      ] 
+  const [chatHistory, setChatHistory] = useState(() => {
+    // 🟢 AMBIL DATA LAMA: Cek apakah laptop anak sudah menyimpan diskusi chat sebelumnya
+    const savedHistory = localStorage.getItem(STORAGE_KEY);
+    if (savedHistory) {
+      try {
+        return JSON.parse(savedHistory);
+      } catch (e) {
+        console.error("Gagal memuat cache riwayat chat:", e);
+      }
     }
-  ]);
+    // Nilai bawaan jika anak baru pertama kali membuka ruang obrolan
+    return [
+      { 
+        id: "session_default", 
+        title: "✨ Percakapan Baru", 
+        messages: [defaultWelcomeMessage] 
+      },
+      { 
+        id: "session_1", 
+        title: "🐾 Tentang Adaptasi Makhluk Hidup", 
+        messages: [
+          { role: 'assistant', content: 'Yuk, tanyakan tentang adaptasi makhluk hidup!' },
+          { role: 'user', content: 'Kenapa bunglon berubah warna?' },
+          { role: 'assistant', content: 'Bunglon berubah warna untuk mengelabui musuh atau menyesuaikan diri dengan lingkungannya (mimikri)! 🦎', topicTag: 'adaptasi makhluk hidup', confidenceTag: '94.2%', similarityTag: '88.50%' }
+        ] 
+      }
+    ];
+  });
 
   const messagesEndRef = useRef(null);
-  const userId = localStorage.getItem('student_id') || 1;
   const BACKEND_API_URL = 'http://localhost:5000'; 
 
-  // 🧠 Ambil pesan dari sesi yang aktif saat ini
+  // 🟢 EFEK SINKRONISASI: Setiap kali chatHistory atau sesi berubah, kunci langsung ke LocalStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
+  }, [chatHistory, STORAGE_KEY]);
+
+  useEffect(() => {
+    localStorage.setItem(SESSION_KEY, currentSessionId);
+  }, [currentSessionId, SESSION_KEY]);
+
+  // Ambil pesan dari sesi yang aktif saat ini
   const currentSession = chatHistory.find(s => s.id === currentSessionId) || chatHistory[0];
   const messages = currentSession.messages;
 
@@ -77,84 +103,87 @@ const ChatbotPage = ({ session }) => {
   // 📡 FUNGSI KIRIM PESAN GLOBAL DAN UPDATE CONTAINER SESI
   // ====================================================================
   const handleSendMessage = async () => {
-    if (!chatInput.trim() || loading) return;
+  if (!chatInput.trim() || loading) return;
 
-    const userMessage = chatInput.trim();
-    setChatInput(''); 
+  const userMessage = chatInput.trim();
+  setChatInput(''); 
 
-    // Tampilkan pesan user secara lokal ke dalam sesi aktif saat ini
-    const userMessageObj = { role: 'user', content: userMessage };
+  // Tampilkan pesan user secara lokal terlebih dahulu
+  const userMessageObj = { role: 'user', content: userMessage };
+  
+  setChatHistory((prevHistory) => {
+    return prevHistory.map((sessionItem) => {
+      if (sessionItem.id === currentSessionId) {
+        const isFirstUserMessage = sessionItem.messages.filter(m => m.role === 'user').length === 0;
+        const updatedTitle = isFirstUserMessage 
+          ? (userMessage.length > 22 ? `💬 ${userMessage.substring(0, 22)}...` : `💬 ${userMessage}`)
+          : sessionItem.title;
+
+        return {
+          ...sessionItem,
+          title: updatedTitle,
+          messages: [...sessionItem.messages, userMessageObj]
+        };
+      }
+      return sessionItem;
+    });
+  });
+
+  setLoading(true);
+
+  try {
+    console.log(`📡 Menembak Chat ke Express backend menuju Supabase...`);
     
-    setChatHistory((prevHistory) => {
-      return prevHistory.map((sessionItem) => {
-        if (sessionItem.id === currentSessionId) {
-          // Jika ini pesan pertama setelah welcome message, update judulnya dari teks user
-          const isFirstUserMessage = sessionItem.messages.filter(m => m.role === 'user').length === 0;
-          const updatedTitle = isFirstUserMessage 
-            ? (userMessage.length > 22 ? `💬 ${userMessage.substring(0, 22)}...` : `💬 ${userMessage}`)
-            : sessionItem.title;
-
-          return {
-            ...sessionItem,
-            title: updatedTitle,
-            messages: [...sessionItem.messages, userMessageObj]
-          };
-        }
-        return sessionItem;
-      });
+    const response = await fetch(`${BACKEND_API_URL}/api/chatbot`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        // 🟢 SINKRONISASI KOLOM: Mengirimkan payload sesuai kebutuhan skema tabel chatbot_history kamu
+        user_id: parseInt(session.id, 10) || 1, 
+        message: userMessage, // Masuk ke kolom 'message' di database
+        isQuizMode: false 
+      })
     });
 
-    setLoading(true);
-
-    try {
-      console.log(`📡 Menembak Chat Global ke Express backend di: ${BACKEND_API_URL}/api/chatbot`);
-      
-      const response = await fetch(`${BACKEND_API_URL}/api/chatbot`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: parseInt(userId, 10),
-          pesan: userMessage,
-          topik: null,
-          isQuizMode: false 
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server merespons dengan status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.type === "CHAT_TEXT" && result.data) {
-        const payload = result.data.content ? result.data.content : result.data;
-
-        const botMessageObj = { 
-          role: 'assistant', 
-          content: payload.text || result.data,
-          topicTag: payload.predicted_topic || null,   
-          confidenceTag: payload.tf_confidence || null, 
-          similarityTag: payload.similarity_score || null 
-        };
-
-        // Masukkan balasan Profesor ke dalam history sesi berjalan
-        setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, botMessageObj] } : s));
-      }
-
-    } catch (error) {
-      console.error("❌ Gagal terhubung atau memproses chat:", error.message);
-      const errorMessageObj = { 
-        role: 'assistant', 
-        content: 'Waduh, sinyal laboratorium Profesor sedang terganggu angin kencang. Coba kirim pesan lagi sebentar ya! 🌪️🔬' 
-      };
-      setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, errorMessageObj] } : s));
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error(`Server merespons dengan status: ${response.status}`);
     }
-  };
+
+    const result = await response.json();
+
+    if (result.type === "CHAT_TEXT" && result.data) {
+      const payload = result.data.content ? result.data.content : result.data;
+
+      // Ambil teks respons bot untuk ditampilkan di balon chat
+      const textBotResponse = payload.text || result.data;
+
+      const botMessageObj = { 
+        role: 'assistant', 
+        content: textBotResponse,
+        // 🟢 METADATA CLOUD: Menangkap klasifikasi AI dari Express untuk ditampilkan ke anak
+        topicTag: payload.predicted_topic || result.topik || null,   
+        confidenceTag: payload.tf_confidence || result.kompleksitas || null, 
+        similarityTag: payload.similarity_score || result.jenis_pertanyaan || null 
+      };
+
+      setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, botMessageObj] } : s));
+    }
+
+  } catch (error) {
+    console.error("❌ Gagal terhubung atau memproses chat:", error.message);
+    const errorMessageObj = { 
+      role: 'assistant', 
+      content: 'Waduh, sinyal laboratorium Profesor sedang terganggu angin kencang. Coba kirim pesan lagi sebentar ya! 🌪️🔬' 
+    };
+    setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, errorMessageObj] } : s));
+  } finally {
+    networkLoading(false);
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex flex-1 w-full h-screen font-['Nunito'] relative bg-[#F5F0E8]">
@@ -194,7 +223,6 @@ const ChatbotPage = ({ session }) => {
       {/* --- SEBELAH KANAN: AREA CHAT UTAMA --- */}
       <main className="flex-1 flex flex-col w-full h-[calc(100vh-73px)] md:h-screen max-w-5xl px-4 mx-auto">
         
-        {/* Kepala Identitas Ruang Obrolan Global */}
         <header className="h-auto md:h-20 flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 bg-[#7A8C5C] rounded-b-[40px] gap-4 sm:gap-0 sticky top-0 md:relative z-20 shadow-md shrink-0 mt-2">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="w-11 h-11 bg-[#FAF7F2] shrink-0 rounded-full flex items-center justify-center text-[#7A8C5C] font-black text-2xl shadow-inner border border-[#D6CFC4]">P</div>
@@ -209,7 +237,6 @@ const ChatbotPage = ({ session }) => {
           </div>
         </header>
 
-        {/* Dynamic Chat Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-5 bg-[#F5F0E8]">
           {messages.map((msg, index) => {
             if (msg.role === 'user') {
@@ -231,7 +258,6 @@ const ChatbotPage = ({ session }) => {
                       </p>
                     </div>
 
-                    {/* Lencana Metadata TensorFlow & Similarity RAG */}
                     {msg.topicTag && msg.topicTag !== "Tidak terdeteksi" && (
                       <div className="flex flex-col gap-1 ml-1 animate-fadeIn">
                         <div className="flex flex-wrap gap-1.5">
@@ -270,7 +296,6 @@ const ChatbotPage = ({ session }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Box Area */}
         <div className="p-4 sm:p-6 border-t border-[#D6CFC4] bg-white rounded-t-[40px] shrink-0 mb-2 shadow-lg">
           <div className="w-full flex items-center gap-3">
             <div className="flex-1 bg-[#F5F0E8] rounded-full flex items-center pr-2 pl-5 py-2 border border-transparent focus-within:border-[#7A8C5C] focus-within:ring-2 focus-within:ring-[#7A8C5C]/30 focus-within:bg-white transition-all shadow-inner justify-between">

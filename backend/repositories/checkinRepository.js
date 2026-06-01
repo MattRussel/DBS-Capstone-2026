@@ -23,9 +23,10 @@ export const findCheckinByUserIdAndDate = async (userId, date) => {
 };
 
 /**
- * 💾 Memasukkan baris absensi check-in baru beserta jumlah beruntun (streak)
+ * 💾 Memasukkan baris absensi check-in baru beserta jumlah beruntun (streak) dan detail jurnal sains
  */
-export const createCheckin = async (userId, date, streakCount = 1) => {
+// 🟢 PERBAIKAN: Tambahkan parameter materiDipelajari, mood, dan tingkatKesulitan dari service layer
+export const createCheckin = async (userId, date, streakCount = 1, materiDipelajari, mood, tingkatKesulitan) => {
   try {
     const { data, error } = await supabase
       .from('daily_checkins')
@@ -33,7 +34,11 @@ export const createCheckin = async (userId, date, streakCount = 1) => {
         {
           user_id: parseInt(userId, 10),
           tanggal_checkin: date, // Format tanggal 'YYYY-MM-DD' dari backend service
-          streak_count: parseInt(streakCount, 10)
+          streak_count: parseInt(streakCount, 10),
+          // 🟢 SINKRONISASI KOLOM BARU: Memasukkan data ke 3 kolom baru di database Supabase kelompokmu
+          materi_dipelajari: materiDipelajari,
+          mood: mood,
+          tingkat_kesulitan: parseInt(tingkatKesulitan, 10)
         }
       ])
       .select()
