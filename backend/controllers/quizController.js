@@ -24,7 +24,6 @@ export const saveQuizScoreResult = async (req, res) => {
   try {
     const { user_id, topik_ipa, skor_total, jawaban_benar } = req.body;
 
-    // 🛡️ Validasi input bodi request
     if (!user_id || !topik_ipa || skor_total === undefined || jawaban_benar === undefined) {
       return res.status(400).json({ success: false, message: "Data setoran nilai tidak lengkap!" });
     }
@@ -33,7 +32,8 @@ export const saveQuizScoreResult = async (req, res) => {
     
     return res.status(200).json({
       success: true,
-      message: "Hore! Skor petualangan sains kamu sukses dicatat di TiDB Cloud! 🚀🏆"
+      // 🟢 KALIBRASI LOG: Diubah ke Supabase Cloud sesuai isi file quizRepository.js kelompokmu
+      message: "Hore! Skor petualangan sains kamu sukses dicatat di Supabase Cloud! 🚀🏆"
     });
 
   } catch (error) {

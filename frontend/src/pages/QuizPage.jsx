@@ -116,6 +116,8 @@ const QuizPage = () => {
     setSelectedAnswer(option);
   };
 
+  // Ganti potongan fungsi handleStartQuiz dan handleNext di QuizPage.jsx kelompokmu
+
   const handleStartQuiz = async (topicKey) => {
     setSelectedTopic(topicKey);
     setLoading(true);
@@ -128,15 +130,16 @@ const QuizPage = () => {
     setCorrectAnswersCount(0);
 
     try {
-      console.log(`📡 Mengambil data kuis via Backend Express untuk topik: ${infoMateriKuis[topicKey].tag}`);
+      console.log(`📡 Mengambil data kuis via Backend Express melalui jalur Chatbot AI untuk topik: ${infoMateriKuis[topicKey].tag}`);
       
-      const response = await fetch('http://localhost:5000/api/chatbot/message', {
+      // 🟢 PERBAIKAN 1: Menembak rute API chatbot global port 5000 kelompokmu yang mengarah ke chatbotService
+      const response = await fetch('http://localhost:5000/api/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: parseInt(userId, 10),
           topik: infoMateriKuis[topicKey].tag, 
-          isQuizMode: true, 
+          isQuizMode: true, // Memicu Skenario A di chatbotService.js
           pesan: "" 
         })
       });
@@ -147,9 +150,9 @@ const QuizPage = () => {
 
       const result = await response.json();
 
-      // Membongkar array kuis yang dibungkus di dalam properti .data dari Express controller
-      if (result.type === "QUIZ_DATA" && Array.isArray(result.data)) {
-        setCurrentQuestions(result.data); 
+      // 🟢 PERBAIKAN 2: Sesuaikan pembacaan objek dari result.data menjadi result.content sesuai kiriman chatbotService.js
+      if (result.type === "QUIZ_DATA" && Array.isArray(result.content)) {
+        setCurrentQuestions(result.content); 
       } else {
         throw new Error("Struktur paket soal kuis dari server tidak valid.");
       }
@@ -187,7 +190,7 @@ const QuizPage = () => {
       setIsFinished(true);
 
       try {
-        // 🟢 SINKRONISASI: Diarahkan ke server backend lokal Express kelompokmu yang terhubung Supabase
+        // 🟢 PERBAIKAN 3: Sesuaikan URL target dengan rute Controller saveQuizScoreResult kelompokmu (/api/quiz/score)
         await fetch('http://localhost:5000/api/quiz/score', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -204,7 +207,6 @@ const QuizPage = () => {
       }
     }
   };
-
   // ====================================================================
   // 3. RENDERING KONDISIONAL SCREEN (VIEW LAYAR)
   // ====================================================================
