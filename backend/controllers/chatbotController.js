@@ -4,7 +4,7 @@ import * as chatbotService from '../services/chatbotService.js';
 export const processChatbotRequest = async (req, res) => {
   const { user_id, pesan, topik, isQuizMode } = req.body;
 
-  // 🛡️ VALIDASI PENGUNCI API: Pastikan user_id DAN pesan ada isinya sebelum diproses
+  // 🛡️ VALIDASI PENGUNCI API
   if (!user_id) {
     return res.status(400).json({ 
       success: false, 
@@ -20,14 +20,13 @@ export const processChatbotRequest = async (req, res) => {
   }
 
   try {
-    // 🧠 Nilai 'topik' yang null dari frontend akan langsung dioper ke service dengan aman.
-    // Di dalam service, properti category hasil prediksi FastAPI / TiDB RAG yang akan mengisi kekosongan tersebut.
+    // 🟢 MENGEMBALIKAN FUNGSI ASLI: Menembak langsung ke service untuk dterusukan ke Python/Supabase
     const hasil = await chatbotService.handleChatOrQuizLogic(user_id, pesan, topik, isQuizMode);
     
     return res.status(200).json({
       success: true,
-      type: hasil.type, // Menjadi penanda di React: 'CHAT_TEXT' atau 'QUIZ_DATA'
-      data: hasil.data
+      type: hasil.type, 
+      data: hasil // Mengirimkan seluruh objek bodi data murni hasil return service
     });
   } catch (error) {
     console.error("❌ [Chatbot Controller Error]:", error.message);

@@ -7,9 +7,9 @@ const ChatbotPage = ({ session }) => {
     content: 'Halo Ilmuwan Cilik! 👋 Aku Profesor Cerdas. Di laboratorium ini, kamu bebas menanyakan apa saja tentang materi sains IPA! Mulai dari sistem pernapasan, tumbuhan, siklus air, hingga fenomena alam di bumi. Yuk, tulis hal yang membuatmu penasaran di bawah ini! 🔬✨' 
   };
 
-  // 📋 Kunci unik LocalStorage yang disesuaikan dengan ID anak yang sedang login agar tidak tertukar
-  const STORAGE_KEY = `sainscerdas_chat_history_${session.id || 'guest'}`;
-  const SESSION_KEY = `sainscerdas_current_session_${session.id || 'guest'}`;
+  // Kunci unik LocalStorage yang disesuaikan dengan ID anak yang sedang login agar tidak tertukar
+  const STORAGE_KEY = `sainscerdas_chat_history_${session?.id || 'guest'}`;
+  const SESSION_KEY = `sainscerdas_current_session_${session?.id || 'guest'}`;
 
   // --- STATE MANAGEMENT (DIINTEGRASIKAN DENGAN LOCALSTORAGE) ---
   const [currentSessionId, setCurrentSessionId] = useState(() => {
@@ -20,7 +20,7 @@ const ChatbotPage = ({ session }) => {
   const [loading, setLoading] = useState(false);
 
   const [chatHistory, setChatHistory] = useState(() => {
-    // 🟢 AMBIL DATA LAMA: Cek apakah laptop anak sudah menyimpan diskusi chat sebelumnya
+    // AMBIL DATA LAMA: Cek apakah laptop anak sudah menyimpan diskusi chat sebelumnya
     const savedHistory = localStorage.getItem(STORAGE_KEY);
     if (savedHistory) {
       try {
@@ -51,7 +51,7 @@ const ChatbotPage = ({ session }) => {
   const messagesEndRef = useRef(null);
   const BACKEND_API_URL = 'http://localhost:5000'; 
 
-  // 🟢 EFEK SINKRONISASI: Setiap kali chatHistory atau sesi berubah, kunci langsung ke LocalStorage
+  // EFEK SINKRONISASI: Setiap kali chatHistory atau sesi berubah, kunci langsung ke LocalStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
   }, [chatHistory, STORAGE_KEY]);
@@ -62,7 +62,7 @@ const ChatbotPage = ({ session }) => {
 
   // Ambil pesan dari sesi yang aktif saat ini
   const currentSession = chatHistory.find(s => s.id === currentSessionId) || chatHistory[0];
-  const messages = currentSession.messages;
+  const messages = currentSession?.messages || [defaultWelcomeMessage];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -73,7 +73,7 @@ const ChatbotPage = ({ session }) => {
   }, [chatHistory, currentSessionId]);
 
   // ====================================================================
-  // 🌟 FUNGSI MEMBUAT SESI BARU (SISTEM CONTAINER KOSONG)
+  // FUNGSI MEMBUAT SESI BARU (SISTEM CONTAINER KOSONG)
   // ====================================================================
   const handleStartNewChat = () => {
     const newSessionId = `session_${Date.now()}`;
@@ -93,16 +93,19 @@ const ChatbotPage = ({ session }) => {
   };
 
   // ====================================================================
-  // 📂 FUNGSI MEMBUKA DISKUSI LAMA (BALIK KE DISKUSI SEBELUMNYA)
+  // FUNGSI MEMBUKA DISKUSI LAMA (BALIK KE DISKUSI SEBELUMNYA)
   // ====================================================================
+  // Murni menangkap satu parameter ID penanda kontainer sesi obrolan lama
   const handleLoadHistory = (id) => {
     setCurrentSessionId(id);
   };
 
   // ====================================================================
+  // FUNGSI KIRIM PESAN GLOBAL DAN UPDATE CONTAINER SESI
+  // ====================================================================
+  // ====================================================================
   // 📡 FUNGSI KIRIM PESAN GLOBAL DAN UPDATE CONTAINER SESI
   // ====================================================================
-  // Ganti potongan fungsi handleSendMessage di ChatbotPage.jsx kelompokmu
   const handleSendMessage = async () => {
     if (!chatInput.trim() || loading) return;
 
@@ -134,17 +137,17 @@ const ChatbotPage = ({ session }) => {
     try {
       console.log(`📡 Menembak Chat ke Express backend menuju Supabase...`);
       
-      const response = await fetch(`${BACKEND_API_URL}/api/chatbot`, {
+      const response = await fetch('http://localhost:5000/api/chatbot/message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          user_id: parseInt(session.id, 10) || 1, 
-          message: userMessage, 
-          pesan: userMessage, // 🟢 PERBAIKAN 1: Dikirim agar lolos validasi 'pesan' di chatbotController.js
-          isQuizMode: false 
+          user_id: parseInt(session?.id, 10) || 1,
+          message: userMessage,
+          pesan: userMessage,
+          isQuizMode: false
         })
       });
 
@@ -154,19 +157,36 @@ const ChatbotPage = ({ session }) => {
 
       const result = await response.json();
 
-      // 🟢 PERBAIKAN 2: Membaca result.data pasca sinkronisasi format terpadu
-      if (result.type === "CHAT_TEXT" && result.data) {
-        const payload = result.data;
+      // 🟢 PEMBONGKAR DATA & PROTEKSI STRUKTUR ADAPTIF
+      if (result.success && result.data) { 
+        
+        // 🧠 INTEGRASI KODE KAMU: Mengecek tipe balasan dari backend sebelum memproses data
+        if (result.type === "CHAT_TEXT") {
+          let payload = result.data; 
 
-        const botMessageObj = { 
-          role: 'assistant', 
-          content: payload.text || result.data,
-          topicTag: payload.predicted_topic || null,   
-          confidenceTag: payload.tf_confidence || null, 
-          similarityTag: payload.similarity_score || null 
-        };
+          // Kupas lapisan luar jika data dikirim dalam bentuk pembungkus objek hasil utuh
+          if (payload.content) {
+            payload = payload.content;
+          }
 
-        setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, botMessageObj] } : s));
+          // JAMINAN MUTLAK: Ekstrak string teks murni agar tag <p> tidak melempar eror React Child Object
+          const botReplyText = typeof payload === 'string' 
+            ? payload 
+            : (payload.text || 'Halo Ilmuwan Cilik! Profesor siap membantu kembali.');
+
+          const botMessageObj = { 
+            role: 'assistant', 
+            content: botReplyText,
+            topicTag: payload.predicted_topic || result.data.predicted_topic || null,   
+            confidenceTag: payload.tf_confidence || result.data.tf_confidence || null, 
+            similarityTag: payload.similarity_score || result.data.similarity_score || null 
+          };
+
+          // Perbarui riwayat kontainer sesi obrolan aktif anak secara real-time
+          setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, botMessageObj] } : s));
+        } else {
+          console.warn(`⚠️ Menerima tipe data tidak dikenal: ${result.type}`);
+        }
       }
 
     } catch (error) {
@@ -180,7 +200,7 @@ const ChatbotPage = ({ session }) => {
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="flex flex-1 w-full h-screen font-['Nunito'] relative bg-[#F5F0E8]">
       

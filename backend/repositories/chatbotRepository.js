@@ -2,7 +2,7 @@
 import supabase from '../config/db.js';
 
 /**
- * 📜 Ambil riwayat chat terakhir anak
+ * Ambil riwayat chat terakhir anak
  */
 export const getChatHistoryByUserId = async (user_id, limit = 10) => {
   try {
@@ -24,24 +24,24 @@ export const getChatHistoryByUserId = async (user_id, limit = 10) => {
 };
 
 /**
- * 💾 Catat obrolan baru langsung berpasangan ke Supabase
+ * Catat obrolan baru langsung berpasangan ke Supabase
  */
 export const saveChatMessage = async (user_id, message, botResponse, metadata = {}) => {
   try {
+    // PEMBONGKARAN SINKRON: Menggunakan format snake_case murni sesuai isi tabel chatbot_history kamu
     const { topik, subtopik, konteks, jenis_pertanyaan, kompleksitas } = metadata;
 
     console.log("⏳ [Supabase Insert] Mencoba menyimpan ke chatbot_history...");
     console.log(`Detail Data -> User: ${user_id}, Topik: ${topik}`);
 
-    // 🟢 PERBAIKAN UTAMA: Bersihkan objek insert dari variabel-variabel controller liar
     const { data, error } = await supabase
       .from('chatbot_history')
       .insert([
         {
           user_id: parseInt(user_id, 10),
-          message: message,                                // Menggunakan argumen 'message'
-          bot_response: botResponse,                       // Menggunakan argumen 'botResponse'
-          topik: topik || null,                            // Menggunakan properti hasil destructuring metadata
+          message: message,                                
+          bot_response: botResponse,                       
+          topik: topik || null,                            
           subtopik: subtopik || null,
           konteks: konteks || 'normal',    
           jenis_pertanyaan: jenis_pertanyaan || null,  
@@ -53,7 +53,7 @@ export const saveChatMessage = async (user_id, message, botResponse, metadata = 
 
     if (error) {
       if (error.code === '23503') {
-        console.error("❌ [Database Error] Gagal simpan karena foreign key constraint! Topik '" + topik + "' tidak terdaftar di tabel knowledge.");
+        console.error("❌ [Database Error] Gagal simpan karena foreign key constraint! Periksa kecocokan data.");
       }
       throw error;
     }

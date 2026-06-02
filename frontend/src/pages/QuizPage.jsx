@@ -1,3 +1,4 @@
+// frontend/src/pages/QuizPage.jsx
 import React, { useState } from 'react';
 
 const QuizPage = () => {
@@ -21,81 +22,21 @@ const QuizPage = () => {
 
   // 📋 MASTER DATA: 15 Topik Resmi Lengkap Sesuai Kurikulum SainsCerdas
   const infoMateriKuis = {
-    adaptasi: {
-      tag: "adaptasi makhluk hidup",
-      judul: "🐾 Adaptasi Makhluk Hidup",
-      deskripsi: "Uji pemahamanmu seputar cara unik hewan dan tumbuhan menyesuaikan diri dengan lingkungan tempat tinggalnya."
-    },
-    darah: {
-      tag: "peredaran darah",
-      judul: "❤️ Peredaran Darah",
-      deskripsi: "Jelajahi alur pompa darah bersih dan kotor yang dialirkan oleh jantung ke seluruh organ tubuh manusia."
-    },
-    peristiwa_alam: {
-      tag: "peristiwa alam",
-      judul: "🌋 Peristiwa Alam",
-      deskripsi: "Belajar tentang fenomena gempa bumi, gunung meletus, banjir, serta dampaknya bagi makhluk hidup."
-    },
-    sda: {
-      tag: "sumber daya alam dan kegunaannya",
-      judul: "🌾 Sumber Daya Alam & Kegunaannya",
-      deskripsi: "Pahami perbedaan materi alam yang dapat diperbarui maupun yang tidak dapat diperbarui di bumi."
-    },
-    pencernaan: {
-      tag: "alat pencernaan dan makanan",
-      judul: "🍔 Alat Pencernaan & Makanan",
-      deskripsi: "Uji pengetahuanmu tentang bagaimana lambung dan usus mengolah makanan sehat menjadi energi tubuh."
-    },
-    benda: {
-      tag: "benda dan sifatnya",
-      judul: "📦 Benda & Sifatnya",
-      deskripsi: "Pelajari karakteristik unik yang membedakan wujud benda padat, benda cair, hingga benda gas."
-    },
-    bumi_alam: {
-      tag: "bumi dan peristiwa alam",
-      judul: "🪐 Bumi & Peristiwa Alam",
-      deskripsi: "Temukan rahasia rotasi dan revolusi bumi yang menyebabkan adanya pergantian siang, malam, dan musim."
-    },
-    air: {
-      tag: "air",
-      judul: "💧 Air & Siklus Hidrologi",
-      deskripsi: "Uji pemahamanmu mengenai evaporasi, kondensasi, dan bagaimana air bersih terus berputar di bumi."
-    },
-    alat_tubuh: {
-      tag: "alat tubuh manusia dan hewan",
-      judul: "🦴 Alat Tubuh Manusia & Hewan",
-      deskripsi: "Pelajari sistem rangka tulang dan fungsi otot sebagai penggerak utama tubuh makhluk hidup."
-    },
-    tumbuhan: {
-      tag: "tumbuhan hijau",
-      judul: "🌿 Tumbuhan Hijau",
-      deskripsi: "Jelajahi rahasia klorofil, fotosintesis, dan bagaimana tumbuhan hijau membuat makanannya sendiri."
-    },
-    gaya: {
-      tag: "gaya, gerak, dan energi",
-      judul: "⚡ Gaya, Gerak, & Energi",
-      deskripsi: "Belajar tentang tarikan, dorongan, gaya gravitasi, magnet, serta hukum kekekalan perubahan energi."
-    },
-    cahaya: {
-      tag: "cahaya dan sifat-sifatnya",
-      judul: "🔦 Cahaya & Sifat-Sifatnya",
-      deskripsi: "Uji pemahamanmu tentang sifat cahaya yang merambat lurus, dapat dipantulkan, hingga dapat dibiaskan."
-    },
-    alat_napas: {
-      tag: "alat pernapasan manusia dan hewan",
-      judul: "🌬️ Alat Pernapasan Makhluk Hidup",
-      deskripsi: "Mengenal organ insang, trakea, paru-paru, dan kulit basah yang dipakai bernapas oleh hewan."
-    },
-    organ: {
-      tag: "organ tubuh manusia dan hewan",
-      judul: "🧬 Organ Tubuh Manusia & Hewan",
-      deskripsi: "Pahami cara kerja ginjal, hati, otak, dan organ koordinasi dalam menjaga keseimbangan tubuh."
-    },
-    sistem_napas: {
-      tag: "sistem pernapasan",
-      judul: "🫁 Sistem Pernapasan Manusia",
-      deskripsi: "Uji alur masuknya oksigen mulai dari hidung, tenggorokan, bronkus, hingga ke alveolus paru-paru."
-    }
+    adaptasi: { tag: "adaptasi makhluk hidup", judul: "🐾 Adaptasi Makhluk Hidup", deskripsi: "Uji pemahamanmu seputar cara unik hewan dan tumbuhan menyesuaikan diri dengan lingkungan tempat tinggalnya." },
+    darah: { tag: "peredaran darah", judul: "❤️ Peredaran Darah", deskripsi: "Jelajahi alur pompa darah bersih dan kotor yang dialirkan oleh jantung ke seluruh organ tubuh manusia." },
+    peristiwa_alam: { tag: "peristiwa alam", judul: "🌋 Peristiwa Alam", deskripsi: "Belajar tentang fenomena gempa bumi, gunung meletus, banjir, serta dampaknya bagi makhluk hidup." },
+    sda: { tag: "sumber daya alam dan kegunaannya", judul: "🌾 Sumber Daya Alam & Kegunaannya", deskripsi: "Pahami perbedaan materi alam yang dapat diperbarui maupun yang tidak dapat diperbarui di bumi." },
+    pencernaan: { tag: "alat pencernaan dan makanan", judul: "🍔 Alat Pencernaan & Makanan", deskripsi: "Uji pengetahuanmu tentang bagaimana lambung dan usus mengolah makanan sehat menjadi energi tubuh." },
+    benda: { tag: "benda dan sifatnya", judul: "📦 Benda & Sifatnya", deskripsi: "Pelajari karakteristik unik yang membedakan wujud benda padat, benda cair, hingga benda gas." },
+    bumi_alam: { tag: "bumi dan peristiwa alam", judul: "🪐 Bumi & Peristiwa Alam", deskripsi: "Temukan rahasia rotasi dan revolusi bumi yang menyebabkan adanya pergantian siang, malam, dan musim." },
+    air: { tag: "air", judul: "💧 Air & Siklus Hidrologi", deskripsi: "Uji pemahamanmu mengenai evaporasi, kondensasi, dan bagaimana air bersih terus berputar di bumi." },
+    alat_tubuh: { tag: "alat tubuh manusia dan hewan", judul: "🦴 Alat Tubuh Manusia & Hewan", deskripsi: "Pelajari sistem rangka tulang dan fungsi otot sebagai penggerak utama tubuh makhluk hidup." },
+    tumbuhan: { tag: "tumbuhan hijau", judul: "🌿 Tumbuhan Hijau", deskripsi: "Jelajahi rahasia klorofil, fotosintesis, dan bagaimana tumbuhan hijau membuat makanannya sendiri." },
+    gaya: { tag: "gaya, gerak, dan energi", judul: "⚡ Gaya, Gerak, & Energi", deskripsi: "Belajar tentang tarikan, dorongan, gaya gravitasi, magnet, serta hukum kekekalan perubahan energi." },
+    cahaya: { tag: "cahaya dan sifat-sifatnya", judul: "🔦 Cahaya & Sifat-Sifatnya", deskripsi: "Uji pemahamanmu tentang sifat cahaya yang merambat lurus, dapat dipantulkan, hingga dapat dibiaskan." },
+    alat_napas: { tag: "alat pernapasan manusia dan hewan", judul: "🌬️ Alat Pernapasan Makhluk Hidup", deskripsi: "Mengenal organ insang, trakea, paru-paru, dan kulit basah yang dipakai bernapas oleh hewan." },
+    organ: { tag: "organ tubuh manusia dan hewan", judul: "🧬 Organ Tubuh Manusia & Hewan", deskripsi: "Pahami cara kerja ginjal, hati, otak, dan organ koordinasi dalam menjaga keseimbangan tubuh." },
+    sistem_napas: { tag: "sistem pernapasan", judul: "🫁 Sistem Pernapasan Manusia", deskripsi: "Uji alur masuknya oksigen mulai dari hidung, tenggorokan, bronkus, hingga ke alveolus paru-paru." }
   };
 
   // ====================================================================
@@ -111,12 +52,9 @@ const QuizPage = () => {
     setError(null);
   };
 
-  // ✨ FITUR BARU: Handler klik opsi jawaban yang sebelumnya terlewat
   const handleOptionClick = (option) => {
     setSelectedAnswer(option);
   };
-
-  // Ganti potongan fungsi handleStartQuiz dan handleNext di QuizPage.jsx kelompokmu
 
   const handleStartQuiz = async (topicKey) => {
     setSelectedTopic(topicKey);
@@ -130,17 +68,18 @@ const QuizPage = () => {
     setCorrectAnswersCount(0);
 
     try {
-      console.log(`📡 Mengambil data kuis via Backend Express melalui jalur Chatbot AI untuk topik: ${infoMateriKuis[topicKey].tag}`);
+      console.log(`📡 Mengambil data kuis via Backend Express untuk topik: ${infoMateriKuis[topicKey].tag}`);
       
-      // 🟢 PERBAIKAN 1: Menembak rute API chatbot global port 5000 kelompokmu yang mengarah ke chatbotService
+      // 🟢 PERBAIKAN 1: Tembak ke rute API chatbot global kelompokmu (/api/chatbot) yang terhubung ke service
       const response = await fetch('http://localhost:5000/api/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: parseInt(userId, 10),
           topik: infoMateriKuis[topicKey].tag, 
-          isQuizMode: true, // Memicu Skenario A di chatbotService.js
-          pesan: "" 
+          isQuizMode: true, 
+          message: `Mulai kuis topik ${infoMateriKuis[topicKey].tag}`, // Lolos validasi bodi request
+          pesan: `Mulai kuis topik ${infoMateriKuis[topicKey].tag}` 
         })
       });
 
@@ -150,9 +89,9 @@ const QuizPage = () => {
 
       const result = await response.json();
 
-      // 🟢 PERBAIKAN 2: Sesuaikan pembacaan objek dari result.data menjadi result.content sesuai kiriman chatbotService.js
-      if (result.type === "QUIZ_DATA" && Array.isArray(result.content)) {
-        setCurrentQuestions(result.content); 
+      // 🟢 PERBAIKAN 2: Membongkar data kuis murni langsung tertuju pada result.data.content
+      if (result.success && result.data && Array.isArray(result.data.content)) {
+        setCurrentQuestions(result.data.content); 
       } else {
         throw new Error("Struktur paket soal kuis dari server tidak valid.");
       }
@@ -190,7 +129,6 @@ const QuizPage = () => {
       setIsFinished(true);
 
       try {
-        // 🟢 PERBAIKAN 3: Sesuaikan URL target dengan rute Controller saveQuizScoreResult kelompokmu (/api/quiz/score)
         await fetch('http://localhost:5000/api/quiz/score', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -201,17 +139,17 @@ const QuizPage = () => {
             jawaban_benar: updatedCorrectCount
           })
         });
-        console.log("💾 Nilai sukses tersimpan di database Supabase lewat backend Express!");
+        console.log("💾 Nilai kuis anak berhasil direkam secara permanen di database Supabase kelompok!");
       } catch (err) {
         console.error("⚠️ Gagal menyimpan skor kuis ke database:", err.message);
       }
     }
   };
+
   // ====================================================================
   // 3. RENDERING KONDISIONAL SCREEN (VIEW LAYAR)
   // ====================================================================
 
-  // SCREEN A: SEDANG LOADING DATA
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-[#F5F0E8] p-6 min-h-screen font-['Nunito']">
@@ -224,7 +162,6 @@ const QuizPage = () => {
     );
   }
 
-  // SCREEN B: TERJADI EROR KONEKSI
   if (error) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-[#F5F0E8] p-6 min-h-screen font-['Nunito']">
@@ -240,7 +177,6 @@ const QuizPage = () => {
     );
   }
 
-  // SCREEN C: DATA KUIS SELESAI (HALAMAN SKOR AKHIR)
   if (isFinished) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-[#F5F0E8] p-6 min-h-screen font-['Nunito']">
@@ -264,7 +200,6 @@ const QuizPage = () => {
     );
   }
 
-  // SCREEN D: MENU UTAMA (AUTOMATIC GENERATION UTK 15 KARTU TOPIK MISI)
   if (!selectedTopic) {
     return (
       <div className="flex-1 p-6 sm:p-10 overflow-y-auto bg-[#F5F0E8] min-h-screen font-['Nunito']">
@@ -295,7 +230,6 @@ const QuizPage = () => {
     );
   }
 
-  // SCREEN E: JALANNYA LEMBAR SOAL KUIS
   if (currentQuestions.length === 0) return null;
 
   const currentQuestion = currentQuestions[currentQuestionIndex];
