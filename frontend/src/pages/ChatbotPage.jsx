@@ -102,88 +102,84 @@ const ChatbotPage = ({ session }) => {
   // ====================================================================
   // 📡 FUNGSI KIRIM PESAN GLOBAL DAN UPDATE CONTAINER SESI
   // ====================================================================
+  // Ganti potongan fungsi handleSendMessage di ChatbotPage.jsx kelompokmu
   const handleSendMessage = async () => {
-  if (!chatInput.trim() || loading) return;
+    if (!chatInput.trim() || loading) return;
 
-  const userMessage = chatInput.trim();
-  setChatInput(''); 
+    const userMessage = chatInput.trim();
+    setChatInput(''); 
 
-  // Tampilkan pesan user secara lokal terlebih dahulu
-  const userMessageObj = { role: 'user', content: userMessage };
-  
-  setChatHistory((prevHistory) => {
-    return prevHistory.map((sessionItem) => {
-      if (sessionItem.id === currentSessionId) {
-        const isFirstUserMessage = sessionItem.messages.filter(m => m.role === 'user').length === 0;
-        const updatedTitle = isFirstUserMessage 
-          ? (userMessage.length > 22 ? `💬 ${userMessage.substring(0, 22)}...` : `💬 ${userMessage}`)
-          : sessionItem.title;
-
-        return {
-          ...sessionItem,
-          title: updatedTitle,
-          messages: [...sessionItem.messages, userMessageObj]
-        };
-      }
-      return sessionItem;
-    });
-  });
-
-  setLoading(true);
-
-  try {
-    console.log(`📡 Menembak Chat ke Express backend menuju Supabase...`);
+    const userMessageObj = { role: 'user', content: userMessage };
     
-    const response = await fetch(`${BACKEND_API_URL}/api/chatbot`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        // 🟢 SINKRONISASI KOLOM: Mengirimkan payload sesuai kebutuhan skema tabel chatbot_history kamu
-        user_id: parseInt(session.id, 10) || 1, 
-        message: userMessage, // Masuk ke kolom 'message' di database
-        isQuizMode: false 
-      })
+    setChatHistory((prevHistory) => {
+      return prevHistory.map((sessionItem) => {
+        if (sessionItem.id === currentSessionId) {
+          const isFirstUserMessage = sessionItem.messages.filter(m => m.role === 'user').length === 0;
+          const updatedTitle = isFirstUserMessage 
+            ? (userMessage.length > 22 ? `💬 ${userMessage.substring(0, 22)}...` : `💬 ${userMessage}`)
+            : sessionItem.title;
+
+          return {
+            ...sessionItem,
+            title: updatedTitle,
+            messages: [...sessionItem.messages, userMessageObj]
+          };
+        }
+        return sessionItem;
+      });
     });
 
-    if (!response.ok) {
-      throw new Error(`Server merespons dengan status: ${response.status}`);
-    }
+    setLoading(true);
 
-    const result = await response.json();
+    try {
+      console.log(`📡 Menembak Chat ke Express backend menuju Supabase...`);
+      
+      const response = await fetch(`${BACKEND_API_URL}/api/chatbot`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: parseInt(session.id, 10) || 1, 
+          message: userMessage, 
+          pesan: userMessage, // 🟢 PERBAIKAN 1: Dikirim agar lolos validasi 'pesan' di chatbotController.js
+          isQuizMode: false 
+        })
+      });
 
-    if (result.type === "CHAT_TEXT" && result.data) {
-      const payload = result.data.content ? result.data.content : result.data;
+      if (!response.ok) {
+        throw new Error(`Server merespons dengan status: ${response.status}`);
+      }
 
-      // Ambil teks respons bot untuk ditampilkan di balon chat
-      const textBotResponse = payload.text || result.data;
+      const result = await response.json();
 
-      const botMessageObj = { 
+      // 🟢 PERBAIKAN 2: Membaca result.data pasca sinkronisasi format terpadu
+      if (result.type === "CHAT_TEXT" && result.data) {
+        const payload = result.data;
+
+        const botMessageObj = { 
+          role: 'assistant', 
+          content: payload.text || result.data,
+          topicTag: payload.predicted_topic || null,   
+          confidenceTag: payload.tf_confidence || null, 
+          similarityTag: payload.similarity_score || null 
+        };
+
+        setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, botMessageObj] } : s));
+      }
+
+    } catch (error) {
+      console.error("❌ Gagal terhubung atau memproses chat:", error.message);
+      const errorMessageObj = { 
         role: 'assistant', 
-        content: textBotResponse,
-        // 🟢 METADATA CLOUD: Menangkap klasifikasi AI dari Express untuk ditampilkan ke anak
-        topicTag: payload.predicted_topic || result.topik || null,   
-        confidenceTag: payload.tf_confidence || result.kompleksitas || null, 
-        similarityTag: payload.similarity_score || result.jenis_pertanyaan || null 
+        content: 'Waduh, sinyal laboratorium Profesor sedang terganggu angin kencang. Coba kirim pesan lagi sebentar ya! 🌪️🔬' 
       };
-
-      setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, botMessageObj] } : s));
+      setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, errorMessageObj] } : s));
+    } finally {
+      setLoading(false);
     }
-
-  } catch (error) {
-    console.error("❌ Gagal terhubung atau memproses chat:", error.message);
-    const errorMessageObj = { 
-      role: 'assistant', 
-      content: 'Waduh, sinyal laboratorium Profesor sedang terganggu angin kencang. Coba kirim pesan lagi sebentar ya! 🌪️🔬' 
-    };
-    setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, errorMessageObj] } : s));
-  } finally {
-    networkLoading(false);
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="flex flex-1 w-full h-screen font-['Nunito'] relative bg-[#F5F0E8]">

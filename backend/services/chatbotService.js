@@ -45,14 +45,16 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
 
       return {
         type: "QUIZ_DATA",
-        content: arraySoalKuis 
+        data: arraySoalKuis 
       };
 
     } catch (error) {
       console.error("❌ [Quiz Generation Error]: Gagal generate kuis lewat prompt chat:", error.message);
+      
+      // 🟢 PERBAIKAN 1: Mengubah 'content' menjadi 'data' agar tidak memicu crash di QuizPage saat server offline
       return {
         type: "QUIZ_DATA",
-        content: [
+        data: [
           {
             "soal": `Materi petualangan sains untuk topik '${topik}' siap diujikan! Manakah sikap ilmuwan yang benar saat melakukan eksperimen?`,
             "opsi": ["A. Semangat dan Teliti", "B. Putus Asa", "C. Terburu-buru", "D. Main-main"],
@@ -94,23 +96,24 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
     let formattedConfidence = rawConfidence < 1 ? `${(rawConfidence * 100).toFixed(1)}%` : `${rawConfidence.toFixed(1)}%`;
 
     let rawSimilarity = aiData.similarity_score ? parseFloat(aiData.similarity_score) : 0;
-    // Jika dari Python bernilai 0.6349, kalikan 100 -> 63.5%. Jika sudah 63.49, langsung tampilkan.
     let formattedSimilarity = rawSimilarity < 1 ? `${(rawSimilarity * 100).toFixed(2)}%` : `${rawSimilarity.toFixed(2)}%`;
 
     // 1. 💾 SIMPAN KE SUPABASE (Data bersih konsisten)
     console.log("⏳ [Supabase Insert] Menyimpan log obrolan sukses ke chatbot_history...");
+    
     await chatbotRepository.saveChatMessage(user_id, pesan, balasanAI, {
       topik: aiData.predicted_topic || topik || null, 
       subtopik: aiData.subtopik || null,
       konteks: aiData.question_matched || null,
-      jenis_pertanyaan: aiData.category || null,       
+      // 🟢 PERBAIKAN 2: Ubah nama kunci properti dari jenis_pertanyaan menjadi jenisPertanyaan agar sinkron dengan destructuring repositori
+      jenisPertanyaan: aiData.category || null,       
       kompleksitas: formattedSimilarity 
     });
 
     // 2. 🟢 RETURNING DATA KE FRONTEND
     return {
       type: "CHAT_TEXT",
-      content: {
+      data: {
         text: balasanAI,
         predicted_topic: aiData.predicted_topic || "Tidak terdeteksi",
         tf_confidence: formattedConfidence,          // 🧠 Hasil Model TF (cth: 13.0%)
@@ -122,7 +125,7 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
     console.error("❌ [Chatbot Service Error]:", error.message);
     return {
       type: "CHAT_TEXT",
-      content: {
+      data: {
         text: `Halo Ilmuwan Cilik! 👋 Profesor Cerdas sedang merapikan laboratorium jurnal sains dulu. Yuk coba kembali sesaat lagi! 🚀`,
         predicted_topic: null,
         tf_confidence: null,

@@ -6,7 +6,6 @@ import supabase from '../config/db.js';
  */
 export const getChatHistoryByUserId = async (user_id, limit = 10) => {
   try {
-    // 🟢 PERBAIKAN 1: Gunakan nama parameter user_id agar konsisten dengan service
     const { data, error } = await supabase
       .from('chatbot_history')
       .select('message, bot_response, topik, subtopik')
@@ -15,8 +14,6 @@ export const getChatHistoryByUserId = async (user_id, limit = 10) => {
       .limit(limit);
 
     if (error) throw error;
-
-    // 🟢 PERBAIKAN 2: Antisipasi safety check jika data belum ada (null/kosong) agar tidak crash saat .reverse()
     if (!data || data.length === 0) return [];
 
     return data.reverse();
@@ -31,32 +28,30 @@ export const getChatHistoryByUserId = async (user_id, limit = 10) => {
  */
 export const saveChatMessage = async (user_id, message, botResponse, metadata = {}) => {
   try {
-    const { topik, subtopik, konteks, jenisPertanyaan, kompleksitas } = metadata;
+    const { topik, subtopik, konteks, jenis_pertanyaan, kompleksitas } = metadata;
 
-    // 🧪 LOGGING SANITY CHECK: Intip apa saja data yang mau dikirim ke Supabase via terminal backend
     console.log("⏳ [Supabase Insert] Mencoba menyimpan ke chatbot_history...");
     console.log(`Detail Data -> User: ${user_id}, Topik: ${topik}`);
 
-    // Contoh Logika Query di Backend Express kelompokmu:
+    // 🟢 PERBAIKAN UTAMA: Bersihkan objek insert dari variabel-variabel controller liar
     const { data, error } = await supabase
       .from('chatbot_history')
       .insert([
         {
-          user_id: req.body.user_id,
-          message: req.body.message,               // Kolom text (Non-nullable)
-          bot_response: aiResponseText,            // Kolom text (Non-nullable)
-          topik: aiPredictedTopic,                 // Kolom varchar (Nullable)
-          subtopik: aiPredictedSubTopic || null,   // Kolom varchar (Nullable)
-          konteks: finalContextTag || 'normal',    // Kolom text (Tempat menyaring kata 'peringatan/kasar')
-          jenis_pertanyaan: ragQueryType || null,  // Kolom varchar (Nullable)
-          kompleksitas: aiComplexityLevel || null  // Kolom varchar (Nullable)
+          user_id: parseInt(user_id, 10),
+          message: message,                                // Menggunakan argumen 'message'
+          bot_response: botResponse,                       // Menggunakan argumen 'botResponse'
+          topik: topik || null,                            // Menggunakan properti hasil destructuring metadata
+          subtopik: subtopik || null,
+          konteks: konteks || 'normal',    
+          jenis_pertanyaan: jenis_pertanyaan || null,  
+          kompleksitas: kompleksitas || null  
         }
       ])
       .select()
-      .maybeSingle(); // 🟢 Lebih aman menggunakan maybeSingle() jika ada potensi null / kegagalan constraint
+      .maybeSingle(); 
 
     if (error) {
-      // 🚨 Tangkap secara spesifik jika masalahnya ada di Foreign Key
       if (error.code === '23503') {
         console.error("❌ [Database Error] Gagal simpan karena foreign key constraint! Topik '" + topik + "' tidak terdaftar di tabel knowledge.");
       }

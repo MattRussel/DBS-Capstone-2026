@@ -27,7 +27,7 @@ export const processChatbotRequest = async (req, res) => {
     return res.status(200).json({
       success: true,
       type: hasil.type, // Menjadi penanda di React: 'CHAT_TEXT' atau 'QUIZ_DATA'
-      data: hasil.content
+      data: hasil.data
     });
   } catch (error) {
     console.error("❌ [Chatbot Controller Error]:", error.message);
