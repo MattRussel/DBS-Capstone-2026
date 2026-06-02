@@ -1,4 +1,5 @@
 import React from 'react';
+import ChatbotAnimasi from '../component/ChatbotAnimasi'; 
 
 const HomePage = ({ setActivePage }) => {
   // 8 Topik Populer yang Diselaraskan dengan dataclean_revisi.csv
@@ -19,24 +20,33 @@ const HomePage = ({ setActivePage }) => {
       
       {/* 1. HERO SECTION (WARNA AKSEN UTAMA TIM: OLIVE GREEN #7A8C5C) */}
       <div className="bg-[#7A8C5C] text-[#FAF7F2] p-6 sm:p-10 rounded-b-[40px] shadow-md relative overflow-hidden">
-        <div className="max-w-4xl">
-          <span className="inline-block bg-[#FAF7F2] text-[#7A8C5C] text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-3 shadow-sm">
-            ✨ Yuk Belajar Sains Hari Ini!
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-black mb-3 text-[#FAF7F2]">Halo Ilmuwan Cilik! 🚀</h1>
-          <p className="text-[#FAF7F2]/90 text-xs sm:text-sm max-w-2xl leading-relaxed mb-6">
-            Punya pertanyaan seru tentang IPA? Tanya langsung ke chatbot kami dan jelajahi dunia sains yang penuh keajaiban bersama SainsCerdas!
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {/* Tombol Primary Dark Brown */}
-            <button onClick={() => setActivePage('chatbot')} className="bg-[#2C1A0E] text-[#FAF7F2] font-black text-xs px-5 py-3 rounded-full shadow-md hover:bg-[#3B2314] transition-all">
-              💬 Tanya Sekarang
-            </button>
-            {/* Tombol Secondary Off-White */}
-            <button onClick={() => setActivePage('topik')} className="bg-[#FAF7F2] text-[#7A8C5C] font-black text-xs px-5 py-3 rounded-full shadow-md hover:bg-white transition-all">
-              🔬 Jelajahi Topik
-            </button>
+        {/* flex-col untuk HP (menumpuk atas-bawah), md:flex-row untuk laptop (kiri-kanan) */}
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          
+          {/* Sisi Teks */}
+          <div className="max-w-4xl flex-1">
+            <span className="inline-block bg-[#FAF7F2] text-[#7A8C5C] text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-3 shadow-sm">
+              ✨ Yuk Belajar Sains Hari Ini!
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-black mb-3 text-[#FAF7F2]">Halo Ilmuwan Cilik! 🚀</h1>
+            <p className="text-[#FAF7F2]/90 text-xs sm:text-sm max-w-2xl leading-relaxed mb-6">
+              Punya pertanyaan seru tentang IPA? Tanya langsung ke chatbot kami dan jelajahi dunia sains yang penuh keajaiban bersama SainsCerdas!
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {/* Tombol Primary Dark Brown */}
+              <button onClick={() => setActivePage('chatbot')} className="bg-[#2C1A0E] text-[#FAF7F2] font-black text-xs px-5 py-3 rounded-full shadow-md hover:bg-[#3B2314] transition-all">
+                💬 Tanya Sekarang
+              </button>
+              {/* Tombol Secondary Off-White */}
+              <button onClick={() => setActivePage('topik')} className="bg-[#FAF7F2] text-[#7A8C5C] font-black text-xs px-5 py-3 rounded-full shadow-md hover:bg-white transition-all">
+                🔬 Jelajahi Topik
+              </button>
+            </div>
           </div>
+
+          {/* Sisi Animasi Robot (Memanggil file ChatbotAnimasi.tsx milikmu) */}
+          <ChatbotAnimasi />
+
         </div>
       </div>
 
