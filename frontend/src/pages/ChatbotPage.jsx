@@ -312,14 +312,27 @@ const ChatbotPage = ({ session }) => {
                 placeholder={loading ? "Profesor sedang berpikir..." : "Tanya apa saja (cth: Kenapa air laut rasanya asin?)"} 
                 className="w-full bg-transparent border-none outline-none text-sm text-[#2C1A0E] placeholder-[#6B5C4E] font-bold disabled:cursor-not-allowed"
               />
+             
               <button 
                 onClick={handleSendMessage}
                 disabled={loading || !chatInput.trim()}
-                className={`p-2.5 rounded-full transition-all flex items-center justify-center shadow-md shrink-0 ${
-                  loading || !chatInput.trim() ? 'bg-[#D6CFC4] text-white cursor-not-allowed shadow-none' : 'bg-[#2C1A0E] hover:bg-[#3B2314]'
+                className={`p-3 rounded-full transition-all duration-300 flex items-center justify-center shrink-0 shadow-md ${
+                  loading || !chatInput.trim() 
+                    ? 'bg-[#D6CFC4] text-white cursor-not-allowed shadow-none' 
+                    : 'bg-[#7A8C5C] text-white hover:bg-[#66754D] hover:scale-105 active:scale-95 ring-4 ring-[#7A8C5C]/20'
                 }`}
+                title="Kirim Pertanyaan"
               >
-                <svg className="w-4 h-4 transform rotate-45 -translate-x-0.5 translate-y-0.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
+                {/* Menggunakan warna ikon putih bersih agar kontras dengan latar belakang hijau */}
+                <svg 
+                  className="w-5 h-5 text-white transform rotate-45 -translate-x-0.5 translate-y-0.5" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="3" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
               </button>
             </div>
           </div>
