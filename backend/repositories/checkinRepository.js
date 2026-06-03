@@ -38,7 +38,7 @@ export const createCheckin = async (userId, date, streakCount = 1, materiDipelaj
           // 🟢 SINKRONISASI KOLOM BARU: Memasukkan data ke 3 kolom baru di database Supabase kelompokmu
           materi_dipelajari: materiDipelajari,
           mood: mood,
-          tingkat_kesulitan: parseInt(tingkatKesulitan, 10)
+           tingkat_kesulitan: parseInt(tingkatKesulitan, 10)
         }
       ])
       .select()
@@ -48,6 +48,24 @@ export const createCheckin = async (userId, date, streakCount = 1, materiDipelaj
     return data; // Mengembalikan objek data check-in ter-update
   } catch (error) {
     console.error("❌ [Checkin Repository] Gagal menyimpan data check-in baru:", error.message);
+    throw error;
+  }
+};
+
+// 🌟 FUNGSI BARU PENYELAMAT LIST TABEL ORANG TUA:
+// Mengambil semua baris riwayat check-in anak dari Supabase tanpa batasan tanggal tunggal
+export const getCheckInHistoryByUserId = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('daily_checkins')
+      .select('*')
+      .eq('user_id', parseInt(userId, 10))
+      .order('tanggal_checkin', { ascending: false }); // Mengurutkan dari tanggal paling baru (list teratas)
+
+    if (error) throw error;
+    return data || []; // Mengembalikan array list objek, atau array kosong jika belum ada history
+  } catch (error) {
+    console.error("❌ [Checkin Repository] Gagal mengambil list data riwayat check-in dari Supabase:", error.message);
     throw error;
   }
 };

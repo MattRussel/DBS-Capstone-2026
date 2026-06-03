@@ -1,11 +1,10 @@
+// backend/controllers/checkinController.js
 import * as checkinService from '../services/checkinService.js';
 
 export const handleCheckIn = async (req, res) => {
   try {
-    // 🟢 PERBAIKAN 1: Tangkap seluruh properti jurnal interaktif dari req.body yang dikirim oleh React
     const { user_id, materi_dipelajari, mood, tingkat_kesulitan } = req.body; 
 
-    // Validasi data utama wajib terisi agar tidak memicu error NULL di database Supabase
     if (!user_id) {
       return res.status(400).json({ success: false, message: 'ID Pengguna (student_id) tidak terbaca.' });
     }
@@ -17,7 +16,6 @@ export const handleCheckIn = async (req, res) => {
       });
     }
 
-    // 🟢 PERBAIKAN 2: Teruskan semua parameter jurnal baru ini ke dalam checkinService layer
     const result = await checkinService.executeDailyCheckIn(user_id, materi_dipelajari, mood, tingkat_kesulitan);
     
     return res.status(200).json(result);
@@ -26,26 +24,46 @@ export const handleCheckIn = async (req, res) => {
   }
 };
 
-// 🌟 FUNGSI BARU: Mengecek apakah user sudah check-in hari ini (Untuk konsumsi Profile Page & Beranda)
 export const getStatusCheckIn = async (req, res) => {
   try {
-    // Karena ini rekues GET, ID user dibaca dari URL query params (?user_id=30001)
     const userId = req.query.user_id;
 
     if (!userId) {
       return res.status(400).json({ success: false, message: 'ID Pengguna tidak terbaca.' });
     }
 
-    // Panggil fungsi pengecekan di service layer (mengecek stempel tanggal hari ini di DB)
     const sudahAbsen = await checkinService.checkIfAlreadyCheckedIn(userId); 
 
     return res.status(200).json({ 
       success: true, 
-      sudah_checkin: sudahAbsen // Mengembalikan nilai true atau false murni dari database
+      sudah_checkin: sudahAbsen 
     });
 
   } catch (error) {
     console.error("❌ Eror internal checkin status:", error.message);
     return res.status(500).json({ success: false, message: 'Gagal memeriksa status absensi di database.' });
+  }
+};
+
+// 🌟 FUNGSI BARU PENYELAMAT LIST ORANG TUA: Menarik seluruh riwayat check-in anak dari Supabase
+export const getCheckInHistory = async (req, res) => {
+  try {
+    // Membaca ID Student dari parameter URL (:studentId) sesuai fetch di ParentPage
+    const studentId = req.params.studentId;
+
+    if (!studentId) {
+      return res.status(400).json({ success: false, message: 'ID Pelajar wajib dicantumkan.' });
+    }
+
+    // Tembak fungsi penarik history di service layer
+    // (Pastikan fungsi getHistoryByUserId / sejenisnya sudah ada di checkinService.js kalian)
+    const historyData = await checkinService.getHistoryByUserId(studentId);
+
+    // Kirimkan array murni langsung ke frontend agar dibaca sempurna oleh Axios
+    return res.status(200).json(historyData);
+
+  } catch (error) {
+    console.error("❌ Eror internal mengambil list history checkin:", error.message);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil riwayat jurnal di database.' });
   }
 };

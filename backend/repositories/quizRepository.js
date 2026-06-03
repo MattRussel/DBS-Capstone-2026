@@ -28,3 +28,20 @@ export const saveScoreToDb = async (userId, topikIpa, skorTotal, jawabanBenar) =
     throw error; // Lemparkan eror ke service -> controller
   }
 };
+
+// Tambahkan di bagian paling bawah backend/repositories/quizRepository.js
+export const getQuizScoresByUserId = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('quiz_scores') // Harus pas dengan nama tabel Supabase kamu
+      .select('*')
+      .eq('user_id', parseInt(userId, 10))
+      .order('created_at', { ascending: false }); // Mengurutkan dari kuis terbaru
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("❌ [Quiz Repository Error] Gagal select dari quiz_scores:", error.message);
+    throw error;
+  }
+};

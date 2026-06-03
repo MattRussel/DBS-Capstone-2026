@@ -66,3 +66,12 @@ export const storeUserScore = async (userId, topikIpa, skorTotal, jawabanBenar) 
     throw error;
   }
 };
+
+export const getStudentQuizHistory = async (userId) => {
+  if (!userId) {
+    throw new Error("ID Pelajar tidak valid untuk mengambil riwayat kuis.");
+  }
+  
+  console.log(`⛓️ [Quiz Service] Meneruskan pencarian skor kuis ke repositori untuk User: ${userId}`);
+  return await quizRepository.getQuizScoresByUserId(userId);
+};

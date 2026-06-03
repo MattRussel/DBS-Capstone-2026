@@ -2,84 +2,121 @@
 import React, { useState, useEffect } from 'react';
 
 const ProfilePage = ({ session }) => {
-  const userId = localStorage.getItem('student_id') || 1;
-
-  // 1. VALIDASI PERPUTARAN HARI BERBASIS FRONTEND LOCAL
-  const tanggalHariIni = new Date().toLocaleDateString('sv-SE');
-  const tanggalTerakhirCheckIn = localStorage.getItem('tanggal_terakhir_checkin');
-
-  // 🔄 OTOMATISASI RESET: Jika tanggal berganti, validHariIni otomatis FALSE dan tampilan langsung kosong
-  const validHariIni = tanggalTerakhirCheckIn === tanggalHariIni;
-
-  const currentGoal = validHariIni ? localStorage.getItem('user_daily_goal') : null;
-  const savedFeeling = validHariIni ? localStorage.getItem('user_feeling') : '😐';
-  const savedDifficulty = validHariIni ? localStorage.getItem('user_difficulty') : '-';
-
-  // 🟢 PERBAIKAN 1: Menyelaraskan 15 Judul Topik Resmi dengan Semua Komponen
-  const goalLabels = { 
-    adaptasi_makhluk_hidup: '🐾 Adaptasi Makhluk Hidup',
-    peredaran_darah: '❤️ Peredaran Darah Manusia',
-    peristiwa_alam: '🌋 Peristiwa Alam & Dampaknya',
-    sumber_daya_alam: '🌾 Sumber Daya Alam & Kegunaannya',
-    alat_pencernaan: '🍔 Alat Pencernaan & Makanan',
-    benda_sifatnya: '📦 Benda & Sifat-Sifatnya',
-    bumi_peristiwa_alam: '🪐 Bumi & Peristiwa Alam',
-    air: '💧 Air & Siklus Hidrologi',
-    alat_tubuh_manusia_hewan: '🦴 Alat Tubuh Manusia & Hewan',
-    tumbuhan_hijau: '🌿 Tumbuhan Hijau & Fotosintesis',
-    gaya_gerak_energi: '⚡ Gaya, Gerak, dan Energi',
-    cahaya_sifatnya: '🔦 Cahaya & Sifat-Sifatnya',
-    alat_pernapasan: '🌬️ Alat Pernapasan Manusia & Hewan',
-    organ_tubuh_manusia_hewan: '🧬 Organ Tubuh Manusia & Hewan',
-    sistem_pernapasan: '🫁 Sistem Pernapasan Manusia'
-  };
+  // Mengambil data profil anak dari session atau localStorage hasil login/register
+  const userId = session?.id || localStorage.getItem('student_id') || 6;
+  const studentName = session?.name || localStorage.getItem('student_name') || 'Anak Hebat';
 
   // --- STATE DATA PROFILE ---
-  const [loading, setLoading] = useState(!session.isGuest);
+  const [loading, setLoading] = useState(!session?.isGuest);
   const [sudahCheckIn, setSudahCheckIn] = useState(false); 
+  
+  // State untuk menampung detail jurnal hari ini yang diambil langsung dari database
+  const [jurnalHariIni, setJurnalHariIni] = useState({
+    materi: '-',
+    feeling: '😐',
+    difficulty: '-'
+  });
+
   const [stats, setStats] = useState({
     rata_skor: 0,
     total_misi_selesai: 0,
     lencana_terbuka: []
   });
 
-  // 2. FETCH DATA LIVE KUIS DARI DATABASE
+  // 🟢 PERBAIKAN 1: Sinkronisasi 15 Judul Topik Resmi Sesuai Dataset 'dataclean_revisi.csv'
+  const goalLabels = { 
+    'adaptasi makhluk hidup': '🐾 Adaptasi Makhluk Hidup',
+    adaptasi_makhluk_hidup: '🐾 Adaptasi Makhluk Hidup',
+    'peredaran darah': '❤️ Peredaran Darah Manusia',
+    peredaran_darah: '❤️ Peredaran Darah Manusia',
+    'peristiwa alam': '🌋 Peristiwa Alam & Dampaknya',
+    peristiwa_alam: '🌋 Peristiwa Alam & Dampaknya',
+    'sumber daya alam dan kegunaannya': '🌾 Sumber Daya Alam & Kegunaannya',
+    sumber_daya_alam: '🌾 Sumber Daya Alam & Kegunaannya',
+    'alat pencernaan dan makanan': '🍔 Alat Pencernaan & Makanan',
+    alat_pencernaan: '🍔 Alat Pencernaan & Makanan',
+    'benda dan sifatnya': '📦 Benda & Sifat-Sifatnya',
+    benda_sifatnya: '📦 Benda & Sifat-Sifatnya',
+    'bumi dan peristiwa alam': '🪐 Bumi & Peristiwa Alam',
+    bumi_peristiwa_alam: '🪐 Bumi & Peristiwa Alam',
+    'air': '💧 Air & Siklus Hidrologi',
+    'alat tubuh manusia dan hewan': '🦴 Alat Tubuh Manusia & Hewan',
+    alat_tubuh_manusia_hewan: '🦴 Alat Tubuh Manusia & Hewan',
+    'tumbuhan hijau': '🌿 Tumbuhan Hijau & Fotosintesis',
+    tumbuhan_hijau: '🌿 Tumbuhan Hijau & Fotosintesis',
+    'gaya, gerak, dan energi': '⚡ Gaya, Gerak, dan Energi',
+    gaya_gerak_energi: '⚡ Gaya, Gerak, dan Energi',
+    'cahaya dan sifat-sifatnya': '🔦 Cahaya & Sifat-Sifatnya',
+    cahaya_sifatnya: '🔦 Cahaya & Sifat-Sifatnya',
+    'alat pernapasan manusia dan hewan': '🌬️ Alat Pernapasan Manusia & Hewan',
+    alat_pernapasan: '🌬️ Alat Pernapasan Manusia & Hewan',
+    'organ tubuh manusia dan hewan': '🧬 Organ Tubuh Manusia & Hewan',
+    organ_tubuh_manusia_hewan: '🧬 Organ Tubuh Manusia & Hewan',
+    'sistem pernapasan': '🫁 Sistem Pernapasan Manusia',
+    sistem_pernapasan: '🫁 Sistem Pernapasan Manusia'
+  };
+
+  // 2. FETCH DATA LIVE DARI DATABASE SUPABASE (ANTI TERTUKAR CACHE)
   useEffect(() => {
-    if (session.isGuest) return;
+    if (session?.isGuest) return;
 
     const ambilDataProfilDanCheckIn = async () => {
       try {
+        // 🟢 A. STATUS CHECK-IN (MURNI DARI DATABASE):
+        // Memanggil rute backend status untuk mengecek stempel kehadiran user ini hari ini
+        const statusRes = await fetch(`http://localhost:5000/api/checkin/status?user_id=${userId}`);
+        let dbSudahCheckIn = false;
+
+        if (statusRes.ok) {
+          const statusResult = await statusRes.json();
+          if (statusResult.success) {
+            dbSudahCheckIn = statusResult.sudah_checkin;
+            setSudahCheckIn(dbSudahCheckIn);
+          }
+        }
+
+        // 🟢 B. DETAIL JURNAL (MURNI DARI LIST HISTORY DATABASE):
+        // Kita ambil riwayat check-in dari database, lalu cari apakah ada data untuk tanggal hari ini
+        const historyRes = await fetch(`http://localhost:5000/api/checkin/history/${userId}`);
+        if (historyRes.ok && dbSudahCheckIn) {
+          const historyData = await historyRes.json();
+          if (Array.isArray(historyData) && historyData.length > 0) {
+            // Karena history diurutkan dari yang terbaru, indeks [0] adalah data hari ini!
+            const logHariIni = historyData[0];
+            setJurnalHariIni({
+              materi: goalLabels[logHariIni.materi_dipelajari] || logHariIni.materi_dipelajari || '🌿 Memahami Sains',
+              feeling: logHariIni.mood || '😀',
+              difficulty: logHariIni.tingkat_kesulitan || '4'
+            });
+          }
+        }
+
+        // C. STATISTIK QUEST KUIS
         const response = await fetch(`http://localhost:5000/api/quests/dashboard?user_id=${userId}`);
-        
         if (response.ok) {
           const result = await response.json();
           if (result.success) {
             const daftarMisi = result.data || [];
             const misiSelesai = daftarMisi.filter(m => m.sudah_selesai);
             const lencanaKoleksi = misiSelesai.map(m => m.lencana_hadiah);
-            const kalkulasiSkor = misiSelesai.length > 0 ? 100 : 0; 
 
             setStats({
-              rata_skor: kalkulasiSkor,
+              rata_skor: misiSelesai.length > 0 ? 100 : 0,
               total_misi_selesai: misiSelesai.length,
               lencana_terbuka: lencanaKoleksi
             });
           }
         }
 
-        // Mengunci status ke tanggal lokal anak hari ini
-        setSudahCheckIn(validHariIni);
-
       } catch (error) {
-        console.error("❌ Gagal memuat data statistik profil:", error.message);
-        setSudahCheckIn(validHariIni);
+        console.error("❌ Gagal memuat data statistik profil dari database:", error.message);
       } finally {
         setLoading(false);
       }
     };
 
     ambilDataProfilDanCheckIn();
-  }, [userId, session.isGuest, validHariIni]);
+  }, [userId, session?.isGuest]);
 
   if (loading) return <div className="text-center mt-20 font-bold text-[#7A8C5C] animate-pulse">Membuka Berkas Ilmuwan... 🔬</div>;
 
@@ -90,15 +127,15 @@ const ProfilePage = ({ session }) => {
         {/* 1. KEPALA IDENTITAS USER ANAK */}
         <div className="flex items-center gap-4 pb-5 border-b border-[#D6CFC4]">
           <div className="w-16 h-16 bg-[#7A8C5C] rounded-full flex items-center justify-center text-white font-black text-2xl shadow-md border-2 border-white shrink-0">
-            {session.isGuest ? 'G' : (session.name ? session.name[0].toUpperCase() : 'U')}
+            {session?.isGuest ? 'G' : studentName[0].toUpperCase()}
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl sm:text-2xl font-black text-[#2C1A0E]">
-                {session.isGuest ? 'Siswa Tamu (Guest)' : (session.name || 'Siswa Cerdas')}
+                {session?.isGuest ? 'Siswa Tamu (Guest)' : studentName}
               </h2>
               
-              {!session.isGuest && (
+              {!session?.isGuest && (
                 <span className={`px-3 py-1 rounded-full text-xs font-black shadow-sm border transition-colors duration-300 ${
                   sudahCheckIn 
                     ? 'bg-[#E8F0E0] text-[#556B2F] border-[#7A8C5C]/30' 
@@ -109,7 +146,7 @@ const ProfilePage = ({ session }) => {
               )}
             </div>
             <p className="text-xs font-bold text-[#6B5C4E] uppercase tracking-wider mt-0.5">
-              Peran: {session.isGuest ? 'Akses Terbatas' : 'Ilmuwan Cilik 👤'}
+              Peran: {session?.isGuest ? 'Akses Terbatas' : 'Ilmuwan Cilik 👤'}
             </p>
           </div>
         </div>
@@ -117,24 +154,23 @@ const ProfilePage = ({ session }) => {
         {/* 2. DOCK INFORMASI INTEGRASI CHECK-IN ANAK */}
         <div className="p-5 bg-white border border-[#D6CFC4] rounded-3xl shadow-inner space-y-3">
           <h3 className="text-xs font-black text-[#6B5C4E] uppercase tracking-wider flex items-center gap-1">
-            📋 Ringkasan Jurnal Belajar Hari Ini
+            📋 Ringkasan Jurnal Belajar Hari Ini (Live Supabase)
           </h3>
           
           {sudahCheckIn ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm font-bold text-[#2C1A0E] pt-1">
               <div className="p-3 bg-[#FAF7F2] border rounded-xl">
                 <span className="text-[#6B5C4E] text-[10px] block uppercase mb-0.5">Target Materi</span>
-                {/* 🟢 PERBAIKAN 2: Membaca Pemetaan 15 Teks Materi Secara Presisi */}
-                {goalLabels[currentGoal] || currentGoal || '🌿 Memahami Sains'}
+                {jurnalHariIni.materi}
               </div>
               <div className="p-3 bg-[#FAF7F2] border rounded-xl text-center">
                 <span className="text-[#6B5C4E] text-[10px] block uppercase mb-0.5">Kondisi Perasaan</span>
-                <span className="text-2xl block mt-1">{savedFeeling}</span>
+                <span className="text-2xl block mt-1">{jurnalHariIni.feeling}</span>
               </div>
               <div className="p-3 bg-[#FAF7F2] border rounded-xl text-center">
                 <span className="text-[#6B5C4E] text-[10px] block uppercase mb-0.5">Tingkat Kesulitan</span>
                 <span className="text-xl font-black text-[#7A8C5C] block mt-1">
-                  {savedDifficulty !== '-' ? `${savedDifficulty} / 7` : '4 / 7'}
+                  {jurnalHariIni.difficulty !== '-' ? `${jurnalHariIni.difficulty} / 7` : '4 / 7'}
                 </span>
               </div>
             </div>
@@ -190,7 +226,7 @@ const ProfilePage = ({ session }) => {
           </div>
         </div>
 
-        {session.isGuest && (
+        {session?.isGuest && (
           <div className="p-3.5 bg-[#FDE8DC] border border-[#C4621D]/20 text-[#C4621D] text-xs font-bold rounded-xl text-center shadow-inner">
             🔒 Riwayat kuis permanen dinonaktifkan di mode Guest. Yuk, daftar akun untuk simpan lencanamu!
           </div>

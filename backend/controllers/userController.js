@@ -30,7 +30,27 @@ export const handleRegister = async (req, res) => {
       user
     });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message });
+    console.error("❌ [Auth Controller Error]:", error.message);
+
+    // 🟢 JALUR PENYELAMAT: SENSOR EROR MENTAH DATABASE (ANTI-POPUP KASAR)
+    // Nilai bawaan jika terjadi error tidak dikenal di laboratorium pendaftaran
+    let pesanErorUser = "Waduh, terjadi gangguan di laboratorium pendaftaran. Coba lagi beberapa saat ya! 🔬";
+
+    // Lakukan pemeriksaan kata kunci constraint keunikan email Supabase
+    if (
+      error.message.includes("users_email_key") || 
+      error.message.toLowerCase().includes("unique constraint") || 
+      error.message.toLowerCase().includes("already exists")
+    ) {
+      pesanErorUser = "Waduh, email ini sudah terdaftar, Ilmuwan Cilik! 👋 Yuk gunakan email lain atau langsung masuk ke menu Login!";
+    } else if (error.message.toLowerCase().includes("username")) {
+      pesanErorUser = "Nama pengguna (username) sudah diambil peneliti lain. Coba nama lain yang tidak kalah keren ya! 🌟";
+    }
+
+    return res.status(400).json({ 
+      success: false, 
+      message: pesanErorUser 
+    });
   }
 };
 
