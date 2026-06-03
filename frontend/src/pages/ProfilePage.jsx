@@ -23,7 +23,7 @@ const ProfilePage = ({ session }) => {
     lencana_terbuka: []
   });
 
-  // 🟢 PERBAIKAN 1: Sinkronisasi 15 Judul Topik Resmi Sesuai Dataset 'dataclean_revisi.csv'
+  // 🟢 PEMETAAN RESMI: Sinkronisasi 100% dengan karakter teks 'dataclean_revisi.csv' Tim AI
   const goalLabels = { 
     'adaptasi makhluk hidup': '🐾 Adaptasi Makhluk Hidup',
     adaptasi_makhluk_hidup: '🐾 Adaptasi Makhluk Hidup',
@@ -51,19 +51,19 @@ const ProfilePage = ({ session }) => {
     'alat pernapasan manusia dan hewan': '🌬️ Alat Pernapasan Manusia & Hewan',
     alat_pernapasan: '🌬️ Alat Pernapasan Manusia & Hewan',
     'organ tubuh manusia dan hewan': '🧬 Organ Tubuh Manusia & Hewan',
+    'organ tubuh manusia dan hewan': '🧬 Organ Tubuh Manusia & Hewan',
     organ_tubuh_manusia_hewan: '🧬 Organ Tubuh Manusia & Hewan',
     'sistem pernapasan': '🫁 Sistem Pernapasan Manusia',
     sistem_pernapasan: '🫁 Sistem Pernapasan Manusia'
   };
 
-  // 2. FETCH DATA LIVE DARI DATABASE SUPABASE (ANTI TERTUKAR CACHE)
+  // FETCH DATA LIVE DARI DATABASE SUPABASE (ANTI TERTUKAR CACHE)
   useEffect(() => {
     if (session?.isGuest) return;
 
     const ambilDataProfilDanCheckIn = async () => {
       try {
-        // 🟢 A. STATUS CHECK-IN (MURNI DARI DATABASE):
-        // Memanggil rute backend status untuk mengecek stempel kehadiran user ini hari ini
+        // A. STATUS CHECK-IN (MURNI DARI DATABASE PER USER ID)
         const statusRes = await fetch(`http://localhost:5000/api/checkin/status?user_id=${userId}`);
         let dbSudahCheckIn = false;
 
@@ -75,13 +75,11 @@ const ProfilePage = ({ session }) => {
           }
         }
 
-        // 🟢 B. DETAIL JURNAL (MURNI DARI LIST HISTORY DATABASE):
-        // Kita ambil riwayat check-in dari database, lalu cari apakah ada data untuk tanggal hari ini
+        // B. DETAIL JURNAL (MURNI DARI LIST HISTORY DATABASE PER USER ID)
         const historyRes = await fetch(`http://localhost:5000/api/checkin/history/${userId}`);
         if (historyRes.ok && dbSudahCheckIn) {
           const historyData = await historyRes.json();
           if (Array.isArray(historyData) && historyData.length > 0) {
-            // Karena history diurutkan dari yang terbaru, indeks [0] adalah data hari ini!
             const logHariIni = historyData[0];
             setJurnalHariIni({
               materi: goalLabels[logHariIni.materi_dipelajari] || logHariIni.materi_dipelajari || '🌿 Memahami Sains',
@@ -91,19 +89,18 @@ const ProfilePage = ({ session }) => {
           }
         }
 
-        // C. STATISTIK QUEST KUIS
-        const response = await fetch(`http://localhost:5000/api/quests/dashboard?user_id=${userId}`);
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            const daftarMisi = result.data || [];
-            const misiSelesai = daftarMisi.filter(m => m.sudah_selesai);
-            const lencanaKoleksi = misiSelesai.map(m => m.lencana_hadiah);
+        // 🟢 C. BERSIHKAN QUESTS EKS-DASHBOARD: Ganti penuh ke rute hasil ujian kuis mandiri
+        const quizRes = await fetch(`http://localhost:5000/api/quiz/results/${userId}`);
+        if (quizRes.ok) {
+          const daftarKuisSelesai = await quizRes.json();
+          if (Array.isArray(daftarKuisSelesai)) {
+            // Ekstrak nama topik kuis unik yang sudah pernah dikerjakan anak dari database
+            const listTopikTerbuka = daftarKuisSelesai.map(q => q.topik_ipa ? q.topik_ipa.toLowerCase().trim() : "");
 
             setStats({
-              rata_skor: misiSelesai.length > 0 ? 100 : 0,
-              total_misi_selesai: misiSelesai.length,
-              lencana_terbuka: lencanaKoleksi
+              rata_skor: daftarKuisSelesai.length > 0 ? 100 : 0,
+              total_misi_selesai: daftarKuisSelesai.length,
+              lencana_terbuka: listTopikTerbuka
             });
           }
         }
@@ -197,38 +194,43 @@ const ProfilePage = ({ session }) => {
           </div>
 
           <div className="pt-2">
-            <h3 className="font-extrabold text-sm text-[#2C1A0E] mb-3 uppercase tracking-wide">🏅 Lemari Lencana Kamu</h3>
+            <h3 className="font-extrabold text-sm text-[#2C1A0E] mb-3 uppercase tracking-wide">🏅 Lemari Lencana Sains Kamu</h3>
             <div className="grid grid-cols-3 gap-3">
-              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Solar Master") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
-                <span className="text-3xl mb-1">☀️</span>
-                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Solar Master</h4>
+              
+              {/* 🟢 LENCANA 1: ADAPTASI MAKHLUK HIDUP */}
+              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("adaptasi makhluk hidup") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
+                <span className="text-3xl mb-1">🐾</span>
+                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Master Adaptasi</h4>
                 <p className="text-[9px] text-[#6B5C4E] font-bold">
-                  {stats.lencana_terbuka.includes("Solar Master") ? "Materi Tata Surya" : "Belum Terkunci"}
+                  {stats.lencana_terbuka.includes("adaptasi makhluk hidup") ? "Materi Adaptasi" : "Belum Terkunci"}
                 </p>
               </div>
 
-              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Botani Cilik") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
+              {/* 🟢 LENCANA 2: TUMBUHAN HIJAU */}
+              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("tumbuhan hijau") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
                 <span className="text-3xl mb-1">🌱</span>
                 <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Botani Cilik</h4>
                 <p className="text-[9px] text-[#6B5C4E] font-bold">
-                  {stats.lencana_terbuka.includes("Botani Cilik") ? "Tumbuhan Hijau" : "Belum Terkunci"}
+                  {stats.lencana_terbuka.includes("tumbuhan hijau") ? "Tumbuhan Hijau" : "Belum Terkunci"}
                 </p>
               </div>
 
-              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("Eco Warrior") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
-                <span className="text-3xl mb-1">🌍</span>
-                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Eco Warrior</h4>
+              {/* 🟢 LENCANA 3: ORGAN TUBUH MANUSIA DAN HEWAN */}
+              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("organ tubuh manusia dan hewan") || stats.lencana_terbuka.includes("organ_tubuh_manusia_hewan") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
+                <span className="text-3xl mb-1">🧬</span>
+                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Anatomi Cilik</h4>
                 <p className="text-[9px] text-[#6B5C4E] font-bold">
-                  {stats.lencana_terbuka.includes("Eco Warrior") ? "Lingkungan Hidup" : "Belum Terkunci"}
+                  {stats.lencana_terbuka.includes("organ tubuh manusia dan hewan") || stats.lencana_terbuka.includes("organ_tubuh_manusia_hewan") ? "Organ Tubuh" : "Belum Terkunci"}
                 </p>
               </div>
+
             </div>
           </div>
         </div>
 
         {session?.isGuest && (
           <div className="p-3.5 bg-[#FDE8DC] border border-[#C4621D]/20 text-[#C4621D] text-xs font-bold rounded-xl text-center shadow-inner">
-            🔒 Riwayat kuis permanen dinonaktifkan di mode Guest. Yuk, daftar akun untuk simpan lencanamu!
+            🔒 Riwayat kuis permanen dinonaktifkan di mode Guest. Yuk, pendaftaran akun untuk simpan lencanamu!
           </div>
         )}
       </div>

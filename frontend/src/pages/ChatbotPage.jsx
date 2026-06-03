@@ -1,4 +1,4 @@
-// frontend/src/pages/ChatbotPage.jsx
+// src/pages/ChatbotPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 
 const ChatbotPage = ({ session }) => {
@@ -49,7 +49,6 @@ const ChatbotPage = ({ session }) => {
   });
 
   const messagesEndRef = useRef(null);
-  const BACKEND_API_URL = 'http://localhost:5000'; 
 
   // EFEK SINKRONISASI: Setiap kali chatHistory atau sesi berubah, kunci langsung ke LocalStorage
   useEffect(() => {
@@ -95,14 +94,10 @@ const ChatbotPage = ({ session }) => {
   // ====================================================================
   // FUNGSI MEMBUKA DISKUSI LAMA (BALIK KE DISKUSI SEBELUMNYA)
   // ====================================================================
-  // Murni menangkap satu parameter ID penanda kontainer sesi obrolan lama
   const handleLoadHistory = (id) => {
     setCurrentSessionId(id);
   };
 
-  // ====================================================================
-  // FUNGSI KIRIM PESAN GLOBAL DAN UPDATE CONTAINER SESI
-  // ====================================================================
   // ====================================================================
   // 📡 FUNGSI KIRIM PESAN GLOBAL DAN UPDATE CONTAINER SESI
   // ====================================================================
@@ -137,15 +132,14 @@ const ChatbotPage = ({ session }) => {
     try {
       console.log(`📡 Menembak Chat ke Express backend menuju Supabase...`);
       
-      const response = await fetch('http://localhost:5000/api/chatbot/message', {
+      const response = await fetch('http://localhost:5000/api/chatbot', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          user_id: parseInt(session?.id, 10) || 1,
-          message: userMessage,
+          user_id: parseInt(session?.id, 10) || localStorage.getItem('student_id') || 1,
           pesan: userMessage,
           isQuizMode: false
         })
@@ -157,35 +151,29 @@ const ChatbotPage = ({ session }) => {
 
       const result = await response.json();
 
-      // 🟢 PEMBONGKAR DATA & PROTEKSI STRUKTUR ADAPTIF
+      // 🟢 PERBAIKAN INTEGRASI UTAMA: Pembongkaran Struktur Berlapis 'result.data.data'
       if (result.success && result.data) { 
-        
-        // 🧠 INTEGRASI KODE KAMU: Mengecek tipe balasan dari backend sebelum memproses data
         if (result.type === "CHAT_TEXT") {
-          let payload = result.data; 
+          
+          // Masuk ke dalam bodi data murni keluaran service layer
+          const corePayload = result.data.data; 
 
-          // Kupas lapisan luar jika data dikirim dalam bentuk pembungkus objek hasil utuh
-          if (payload.content) {
-            payload = payload.content;
-          }
+          // Ambil string teks balasan utama Profesor Cerdas
+          const botReplyText = corePayload?.text || 'Halo Ilmuwan Cilik! Profesor siap membantu kembali.';
 
-          // JAMINAN MUTLAK: Ekstrak string teks murni agar tag <p> tidak melempar eror React Child Object
-          const botReplyText = typeof payload === 'string' 
-            ? payload 
-            : (payload.text || 'Halo Ilmuwan Cilik! Profesor siap membantu kembali.');
-
+          // Ekstrak tag visual secara presisi agar metadata kuis/RAG tidak bernilai null
           const botMessageObj = { 
             role: 'assistant', 
             content: botReplyText,
-            topicTag: payload.predicted_topic || result.data.predicted_topic || null,   
-            confidenceTag: payload.tf_confidence || result.data.tf_confidence || null, 
-            similarityTag: payload.similarity_score || result.data.similarity_score || null 
+            topicTag: corePayload?.predicted_topic || null,   
+            confidenceTag: corePayload?.tf_confidence || null, 
+            similarityTag: corePayload?.similarity_score || null 
           };
 
           // Perbarui riwayat kontainer sesi obrolan aktif anak secara real-time
           setChatHistory(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, botMessageObj] } : s));
         } else {
-          console.warn(`⚠️ Menerima tipe data tidak dikenal: ${result.type}`);
+          console.warn(`⚠️ Menerisma tipe data tidak dikenal: ${result.type}`);
         }
       }
 

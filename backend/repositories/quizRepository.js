@@ -1,42 +1,56 @@
 // backend/repositories/quizRepository.js
-import supabase from '../config/db.js'; // Menyesuaikan dengan lokasi db.js kamu yang baru
+import supabase from '../config/db.js';
 
 /**
- * 💾 Menyimpan hasil skor kuis mandiri anak ke Supabase
+ * 💾 Menyimpan hasil skor kuis mandiri anak ke Supabase Cloud
  */
 export const saveScoreToDb = async (userId, topikIpa, skorTotal, jawabanBenar) => {
   try {
+    // Bersihkan spasi berlebih di awal/akhir string untuk menghindari kegagalan pencocokan FK
+    const cleanTopikIpa = topikIpa ? topikIpa.trim() : '';
+
     const { data, error } = await supabase
       .from('quiz_scores')
       .insert([
         {
           user_id: parseInt(userId, 10),
-          topik_ipa: topikIpa, // Diikat via Foreign Key ke knowledge(topik)
+          topik_ipa: cleanTopikIpa, // Menggunakan string topik yang sudah steril
           skor_total: parseInt(skorTotal, 10),
           jawaban_benar: parseInt(jawabanBenar, 10)
-          // 💡 Catatan: Kolom 'created_at' tidak perlu ditulis karena Supabase otomatis mengisinya dengan TIMESTAMP saat ini
         }
       ])
-      .select() // Mengembalikan data yang baru dimasukkan
-      .single();
+      .select()
+      .maybeSingle(); // Menggunakan maybeSingle agar lebih aman dan tidak melempar error jika data kosong
 
-    if (error) throw error;
+    if (error) {
+      // 🟢 DETEKSI EROR KHUSUS: Memberikan diagnosa instan jika relasi tabel kuis mampet
+      if (error.code === '23503') {
+        console.error(`❌ [Supabase FK Error] Gagal simpan nilai! String topik '${cleanTopikIpa}' tidak terdaftar atau tidak cocok karakternya dengan kolom referensi master di tabel knowledge.`);
+      }
+      throw error;
+    }
     
-    return data; // Mengembalikan objek hasil skor kuis yang sukses disimpan
+    return data;
   } catch (error) {
     console.error("❌ [Quiz Repository] Gagal menyimpan skor kuis ke Supabase:", error.message);
-    throw error; // Lemparkan eror ke service -> controller
+    throw error;
   }
 };
 
-// Tambahkan di bagian paling bawah backend/repositories/quizRepository.js
+/**
+ * 📜 Ambil riwayat skor kuis anak (Terisolasi Ketat per User ID)
+ */
 export const getQuizScoresByUserId = async (userId) => {
   try {
+    const cleanUserId = parseInt(userId, 10);
+    
+    if (isNaN(cleanUserId)) return [];
+
     const { data, error } = await supabase
-      .from('quiz_scores') // Harus pas dengan nama tabel Supabase kamu
+      .from('quiz_scores')
       .select('*')
-      .eq('user_id', parseInt(userId, 10))
-      .order('created_at', { ascending: false }); // Mengurutkan dari kuis terbaru
+      .eq('user_id', cleanUserId) // Memastikan pencarian riwayat mengunci murni hanya milik user login ini
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
