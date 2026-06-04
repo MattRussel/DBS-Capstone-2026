@@ -7,38 +7,46 @@ const AI_ENGINEER_API_URL = 'https://groin-multitude-earphone.ngrok-free.dev';
 /**
  * 📡 MENEMBAK API RESMI PYTHON /generate-quiz (MURNI 100% AMAN DARI TRAILING SLASH)
  */
-// backend/services/quizService.js
 export const generateQuizSOAL = async (topik) => {
   try {
-    // Pastikan URL bersih dari garis miring di akhir
     const baseUrl = AI_ENGINEER_API_URL.replace(/\/+$/, '');
     const targetUrl = `${baseUrl}/generate-quiz`;
     
-    console.log(`📡 Menembak endpoint Python: ${targetUrl}`);
+    console.log(`📡 Menembak endpoint Python Resmi: ${targetUrl}`);
 
     const aiResponse = await fetch(targetUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true' // Mengamankan interseptor Ngrok gratisan
+      },
       body: JSON.stringify({ topik: topik.trim(), jumlah_soal: 3 })
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error(`🔴 FastAPI Error: ${errorText}`);
+      console.error(`🔴 FastAPI Error di Server Python: ${errorText}`);
       throw new Error(`API Python merespons ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    return { type: "QUIZ_DATA", data: aiData.quiz_questions };
+    
+    // 🟢 PERBAIKAN UTAMA: Bungkus ke properti 'content' agar dibaca 100% pas oleh QuizPage.jsx!
+    return { 
+      type: "QUIZ_DATA", 
+      content: aiData.quiz_questions || [] 
+    };
 
   } catch (error) {
-    console.error("❌ Eror di Quiz Service:", error.message);
-    // Fallback soal agar UI tidak crash
+    console.error("❌ Eror di Quiz Service (Mengaktifkan Soal Cadangan):", error.message);
+    
+    // Fallback soal cadangan darurat agar UI anak tidak hang/crash putih
     return {
       type: "QUIZ_DATA",
-      data: [{
-        soal: `Maaf, kuis untuk ${topik} sedang dipersiapkan. Coba lagi nanti!`,
-        opsi: ["A. Oke", "B. Baik", "C. Siap", "D. Mengerti"],
+      content: [{
+        soal: `Maaf, Profesor sedang meramu bank soal baru untuk topik ${topik}. Coba beberapa saat lagi ya! 🚀🔬`,
+        opsi: ["A. Oke, Prof!", "B. Siap!", "C. Baik!", "D. Mengerti!"],
         jawaban_benar: "A"
       }]
     };
