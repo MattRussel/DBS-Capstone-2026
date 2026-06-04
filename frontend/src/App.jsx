@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import AuthModal from "./pages/AuthModal";
-import QuizPage from "./pages/QuizPage";
 import ProfilePage from "./pages/ProfilePage";
 import HomePage from "./pages/HomePage";
 import TopikPage from "./pages/TopikPage";
@@ -61,7 +60,6 @@ const App = () => {
   const handleLogout = () => {
     setIsLoggingOut(true);
     setTimeout(() => {
-      // 🟢 PERBAIKAN MUTLAK: Hapus seluruh sisa cache otentikasi agar aman dari kebocoran user lain
       localStorage.removeItem("student_token");
       localStorage.removeItem("student_name");
       localStorage.removeItem("student_role");
@@ -123,16 +121,6 @@ const App = () => {
     alert("👦 Berhasil kembali ke Mode Anak-anak!");
   };
 
-  const handleQuizNavigation = () => {
-    if (session.isGuest) {
-      setIsAuthModalOpen(true); // Tampilkan modal login jika guest
-      setIsMobileMenuOpen(false); // Tutup menu mobile jika terbuka
-    } else {
-      setActivePage("quiz"); // Pindah ke halaman kuis jika sudah login
-      setIsMobileMenuOpen(false); // Tutup menu mobile jika terbuka
-    }
-  };
-
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#F5F0E8] font-medium text-[#2C1A0E] overflow-x-hidden relative">
       
@@ -142,7 +130,6 @@ const App = () => {
           onClick={() => activePage !== "parent" && setActivePage("profil")}
           className={`flex items-center gap-3 ${activePage === "parent" ? "cursor-default" : "cursor-pointer active:opacity-80"}`}
         >
-          {/* 🟢 INTEGRASI MASKOT: Memasang Gambar Robot Sains Cerdas */}
           <div className="w-9 h-9 bg-[#FAF7F2] rounded-xl flex items-center justify-center shadow-sm overflow-hidden border border-[#D6CFC4]/40">
             <img src="/Sains Cerdas.svg" alt="Logo Maskot Robot" className="w-full h-full object-cover" />
           </div>
@@ -178,7 +165,6 @@ const App = () => {
             className={`hidden md:flex h-20 items-center px-6 border-b border-[#D6CFC4] bg-[#F5F0E8] rounded-b-xl transition-colors group ${activePage === "parent" ? "cursor-default" : "cursor-pointer hover:bg-[#FAF7F2]"}`}
             title={activePage === "parent" ? "Sesi Pemantauan Aktif" : "Lihat Profil Saya"}
           >
-            {/* 🟢 INTEGRASI MASKOT: Memasang Gambar Robot Sains Cerdas Berukuran Presisi di Desktop */}
             <div className="w-11 h-11 bg-[#FAF7F2] rounded-xl flex items-center justify-center mr-3 shadow-md overflow-hidden shrink-0 border border-[#D6CFC4]/60">
               <img src="/Sains Cerdas.svg" alt="Logo Maskot Robot" className="w-full h-full object-cover" />
             </div>
@@ -226,13 +212,6 @@ const App = () => {
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === "topik" ? "bg-[#7A8C5C] text-white shadow-sm" : "text-[#6B5C4E] hover:bg-[#FAF7F2]"}`}
                 >
                   <span>📚</span> Jelajahi Topik
-                </button>
-                {/* MODIFIKASI INI: Tambahkan logika cek guest mode untuk Misi Kuis */}
-                <button
-                  onClick={handleQuizNavigation} 
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === "quiz" ? "bg-[#7A8C5C] text-white shadow-sm" : "text-[#6B5C4E] hover:bg-[#FAF7F2]"}`}
-                >
-                  <span>🎯</span> Misi Kuis
                 </button>
               </>
             )}
@@ -301,7 +280,6 @@ const App = () => {
       {/* --- AREA DISTRIBUSI UTAMA WORKSPACE --- */}
       <main className="flex-1 overflow-y-auto h-full">
         {activePage === "home" && <HomePage setActivePage={setActivePage} />}
-        {activePage === "quiz" && <QuizPage />}
         {activePage === "profil" && <ProfilePage session={session} />}
         {activePage === "topik" && <TopikPage />}
         {activePage === "chatbot" && <ChatbotPage session={session} />}
