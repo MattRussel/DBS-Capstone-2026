@@ -621,6 +621,7 @@ def check_moderation(req: ModerationRequest):
 
 @app.post("/generate-quiz")
 def generate_quiz(req: QuizRequest):
+    print(f"🔍 [DEBUG AI] Menerima request kuis untuk topik: '{req.topik}' (Tipe: {type(req.topik)})")
     # 1. Validasi input lebih ketat
     if not req.topik or not req.topik.strip():
         raise HTTPException(status_code=422, detail="Topik kuis tidak boleh kosong!")
@@ -631,7 +632,6 @@ def generate_quiz(req: QuizRequest):
         
         # 3. Cek apakah hasil yang dikembalikan benar-benar ada isinya
         if not questions:
-            # Memberikan pesan informatif alih-alih membiarkan sistem melempar eror tak terduga
             return {
                 "message": "Maaf, soal kuis untuk topik tersebut belum tersedia di database kami.",
                 "quiz_questions": []
@@ -648,11 +648,19 @@ def generate_quiz(req: QuizRequest):
         log.error(f"Error saat generate quiz: {str(e)}")
         # Lempar HTTP 500 jika ada gangguan internal database
         raise HTTPException(status_code=500, detail="Terjadi gangguan saat mengambil data kuis dari database.")
-        # Tambahkan ini tepat sebelum uvicorn.run
+
+
+# 🟢 PERBAIKAN: Taruh di luar fungsi (Indentasi Nol) untuk mencetak rute saat server start
+print("\n=== DAFTAR ENDPOINT FASTAPI YANG AKTIF ===")
 for route in app.routes:
     print(f"Path: {route.path}, Methods: {route.methods}")
-
+print("==========================================\n")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000)
+    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run("app:app", host="0.0.0.0", port=8000)
