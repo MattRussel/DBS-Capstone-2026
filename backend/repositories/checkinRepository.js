@@ -1,71 +1,76 @@
 // backend/repositories/checkinRepository.js
-import supabase from '../config/db.js'; // Menyesuaikan dengan lokasi db.js kamu yang baru
+import supabase from '../config/db.js';
 
 /**
- * 🔍 Mengecek apakah anak sudah melakukan check-in di tanggal tertentu
- * Digunakan untuk mencegah anak melakukan absensi ganda di hari yang sama
+ * 🟢 PERBAIKAN: Menggunakan .select() biasa agar kebal dari eror 'multiple rows returned'
  */
-export const findCheckinByUserIdAndDate = async (userId, date) => {
+export const findCheckinByUserIdAndDate = async (userId, tanggal) => {
   try {
     const { data, error } = await supabase
       .from('daily_checkins')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('tanggal_checkin', date)
-      .maybeSingle(); // Mengembalikan 1 objek data absensi, atau null jika belum absen
+      .select('id, streak_count, tingkat_kesulitan')
+      .eq('user_id', parseInt(userId, 10))
+      .eq('tanggal_checkin', tanggal); // Membaca sebagai array list
 
     if (error) throw error;
-    return data;
+    
+    // Jika ada data ditemukan (meskipun ganda), ambil baris pertama yang paling sah
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
-    console.error("❌ [Checkin Repository] Gagal memeriksa data absensi harian:", error.message);
+    console.error("❌ [Repository Find Checkin Error]:", error.message);
     throw error;
   }
 };
 
 /**
- * 💾 Memasukkan baris absensi check-in baru beserta jumlah beruntun (streak) dan detail jurnal sains
+ * 🟢 SINKRONISASI TOTAL: Membuat data check-in baru ke database Supabase
  */
-// 🟢 PERBAIKAN: Tambahkan parameter materiDipelajari, mood, dan tingkatKesulitan dari service layer
-export const createCheckin = async (userId, date, streakCount = 1, materiDipelajari, mood, tingkatKesulitan) => {
+export const createCheckin = async (userId, tanggal, streak, materi, mood, kesulitan) => {
   try {
     const { data, error } = await supabase
       .from('daily_checkins')
       .insert([
         {
           user_id: parseInt(userId, 10),
-          tanggal_checkin: date, // Format tanggal 'YYYY-MM-DD' dari backend service
-          streak_count: parseInt(streakCount, 10),
-          // 🟢 SINKRONISASI KOLOM BARU: Memasukkan data ke 3 kolom baru di database Supabase kelompokmu
-          materi_dipelajari: materiDipelajari,
+          tanggal_checkin: tanggal,
+          streak_count: parseInt(streak, 10),
+          materi_dipelajari: materi,
           mood: mood,
-           tingkat_kesulitan: parseInt(tingkatKesulitan, 10)
+          tingkat_kesulitan: parseInt(kesulitan, 10)
         }
       ])
-      .select()
-      .single();
+      .select();
 
     if (error) throw error;
-    return data; // Mengembalikan objek data check-in ter-update
+    return data;
   } catch (error) {
-    console.error("❌ [Checkin Repository] Gagal menyimpan data check-in baru:", error.message);
+    console.error("❌ [Repository Create Checkin Error]:", error.message);
     throw error;
   }
 };
 
-// 🌟 FUNGSI BARU PENYELAMAT LIST TABEL ORANG TUA:
-// Mengambil semua baris riwayat check-in anak dari Supabase tanpa batasan tanggal tunggal
-export const getCheckInHistoryByUserId = async (userId) => {
+/**
+ * 🟢 SINKRONISASI TOTAL: Menarik riwayat jurnal belajar anak untuk ProfilePage
+ */
+export const getHistoryByUserId = async (userId) => {
   try {
     const { data, error } = await supabase
       .from('daily_checkins')
-      .select('*')
+      .select('materi_dipelajari, mood, tingkat_kesulitan, tanggal_checkin')
       .eq('user_id', parseInt(userId, 10))
-      .order('tanggal_checkin', { ascending: false }); // Mengurutkan dari tanggal paling baru (list teratas)
+      .order('tanggal_checkin', { ascending: false });
 
     if (error) throw error;
-    return data || []; // Mengembalikan array list objek, atau array kosong jika belum ada history
+    
+    // Konversi tipe data tingkat_kesulitan ke bentuk nomor integer murni
+    const cleanData = (data || []).map(row => ({
+      ...row,
+      tingkat_kesulitan: row.tingkat_kesulitan !== null ? parseInt(row.tingkat_kesulitan, 10) : 4
+    }));
+
+    return cleanData;
   } catch (error) {
-    console.error("❌ [Checkin Repository] Gagal mengambil list data riwayat check-in dari Supabase:", error.message);
+    console.error("❌ [Repository Get History Error]:", error.message);
     throw error;
   }
 };

@@ -123,6 +123,16 @@ const App = () => {
     alert("👦 Berhasil kembali ke Mode Anak-anak!");
   };
 
+  const handleQuizNavigation = () => {
+    if (session.isGuest) {
+      setIsAuthModalOpen(true); // Tampilkan modal login jika guest
+      setIsMobileMenuOpen(false); // Tutup menu mobile jika terbuka
+    } else {
+      setActivePage("quiz"); // Pindah ke halaman kuis jika sudah login
+      setIsMobileMenuOpen(false); // Tutup menu mobile jika terbuka
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#F5F0E8] font-medium text-[#2C1A0E] overflow-x-hidden relative">
       
@@ -134,7 +144,7 @@ const App = () => {
         >
           {/* 🟢 INTEGRASI MASKOT: Memasang Gambar Robot Sains Cerdas */}
           <div className="w-9 h-9 bg-[#FAF7F2] rounded-xl flex items-center justify-center shadow-sm overflow-hidden border border-[#D6CFC4]/40">
-            <img src="public/Sains Cerdas.svg" alt="Logo Maskot Robot" className="w-full h-full object-cover" />
+            <img src="/Sains Cerdas.svg" alt="Logo Maskot Robot" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-extrabold text-base text-[#FAF7F2] leading-none">
@@ -170,7 +180,7 @@ const App = () => {
           >
             {/* 🟢 INTEGRASI MASKOT: Memasang Gambar Robot Sains Cerdas Berukuran Presisi di Desktop */}
             <div className="w-11 h-11 bg-[#FAF7F2] rounded-xl flex items-center justify-center mr-3 shadow-md overflow-hidden shrink-0 border border-[#D6CFC4]/60">
-              <img src="public/Sains Cerdas.svg" alt="Logo Maskot Robot" className="w-full h-full object-cover" />
+              <img src="/Sains Cerdas.svg" alt="Logo Maskot Robot" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="font-extrabold text-base text-[#2C1A0E] leading-tight">
@@ -217,8 +227,9 @@ const App = () => {
                 >
                   <span>📚</span> Jelajahi Topik
                 </button>
+                {/* MODIFIKASI INI: Tambahkan logika cek guest mode untuk Misi Kuis */}
                 <button
-                  onClick={() => { setActivePage("quiz"); setIsMobileMenuOpen(false); }}
+                  onClick={handleQuizNavigation} 
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-full font-semibold text-sm transition-all ${activePage === "quiz" ? "bg-[#7A8C5C] text-white shadow-sm" : "text-[#6B5C4E] hover:bg-[#FAF7F2]"}`}
                 >
                   <span>🎯</span> Misi Kuis

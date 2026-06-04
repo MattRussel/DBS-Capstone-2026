@@ -52,6 +52,7 @@ const CheckInPage = ({ onClose }) => {
     setSliderValue(index);
   };
 
+  // 🛠️ PERBAIKAN UTAMA PADA ANTARMUKA RESPONS JSON/OBJECT ALERT
   const nextStep = async () => {
     if (step === totalSteps) {
       try {
@@ -69,7 +70,7 @@ const CheckInPage = ({ onClose }) => {
           },
           body: JSON.stringify({ 
             user_id: userId,
-            materi_dipelajari: namaMateriPilihan, 
+            materi_dipelajari: checkInGoal, // Gunakan key ID asli agar sinkron dengan database profile
             mood: feeling,                        
             tingkat_kesulitan: difficulty         
           })
@@ -78,6 +79,14 @@ const CheckInPage = ({ onClose }) => {
         const result = await response.json();
         const tanggalHariIni = new Date().toLocaleDateString('sv-SE');
 
+        // Mengamankan isi pesan agar tidak berwujud Object mentah saat di-alert
+        let pesanFinal = "Check-in harian berhasil disimpan ke database! 🚀";
+        if (result && result.message) {
+          pesanFinal = typeof result.message === 'object' 
+            ? JSON.stringify(result.message) 
+            : result.message;
+        }
+
         if (response.ok && result.success) {
           localStorage.setItem('user_daily_goal', checkInGoal);
           localStorage.setItem('user_feeling', feeling);
@@ -85,19 +94,25 @@ const CheckInPage = ({ onClose }) => {
           localStorage.setItem('user_saved_question', userQuestion);
           localStorage.setItem('tanggal_terakhir_checkin', tanggalHariIni); 
 
-          alert(result.message || "Check-in harian berhasil disimpan ke database! 🚀");
+          // Simpan juga flag khusus penanda untuk ProfilePage / ParentPage
+          localStorage.setItem(`sainscerdas_tanggal_checkin_user_${userId}`, tanggalHariIni);
+          localStorage.setItem(`sainscerdas_goal_user_${userId}`, checkInGoal);
+          localStorage.setItem(`sainscerdas_feeling_user_${userId}`, feeling);
+          localStorage.setItem(`sainscerdas_difficulty_user_${userId}`, difficulty);
+
+          alert(pesanFinal);
           if (onClose) onClose();
           return;
         }
 
-        if (result && result.message) {
+        if (result) {
           localStorage.setItem('user_daily_goal', checkInGoal);
           localStorage.setItem('user_feeling', feeling);
           localStorage.setItem('user_difficulty', difficulty);
           localStorage.setItem('user_saved_question', userQuestion);
           localStorage.setItem('tanggal_terakhir_checkin', tanggalHariIni); 
 
-          alert(`Info Jurnal: ${result.message}`);
+          alert(`Info Jurnal: ${pesanFinal}`);
           if (onClose) onClose();
           return;
         }
@@ -122,7 +137,6 @@ const CheckInPage = ({ onClose }) => {
           <div className="flex flex-col gap-2.5 animate-fadeIn pt-1">
             <h2 className="text-xl font-black text-[#2C1A0E] mb-1 leading-snug">Apa tujuan belajarmu hari ini?</h2>
             
-            {/* AREA CONTAINER SCROLLBAR: Membungkus 15 list materi hasil sinkronisasi */}
             <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
               {[
                 { id: 'adaptasi_makhluk_hidup', label: 'Adaptasi Makhluk Hidup', icon: '🐾' },

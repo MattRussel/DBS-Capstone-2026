@@ -178,56 +178,6 @@ const ProfilePage = ({ session }) => {
           )}
         </div>
 
-        {/* 3. KONTEN LEVEL & KEPATUHAN LENCANA ANAK */}
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs font-black text-[#6B5C4E]">
-              <span>Tingkat Kemajuan Ilmuwan (Level {stats.total_misi_selesai + 1})</span>
-              <span>{stats.total_misi_selesai * 33}% Menuju Level Berikutnya</span>
-            </div>
-            <div className="w-full bg-[#D6CFC4]/40 h-3 rounded-full overflow-hidden shadow-inner">
-              <div 
-                className="h-full bg-gradient-to-r from-[#7A8C5C] to-[#9eb07a] rounded-full transition-all duration-500" 
-                style={{ width: `${Math.min(stats.total_misi_selesai * 33, 100)}%` }} 
-              />
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <h3 className="font-extrabold text-sm text-[#2C1A0E] mb-3 uppercase tracking-wide">🏅 Lemari Lencana Sains Kamu</h3>
-            <div className="grid grid-cols-3 gap-3">
-              
-              {/* 🟢 LENCANA 1: ADAPTASI MAKHLUK HIDUP */}
-              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("adaptasi makhluk hidup") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
-                <span className="text-3xl mb-1">🐾</span>
-                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Master Adaptasi</h4>
-                <p className="text-[9px] text-[#6B5C4E] font-bold">
-                  {stats.lencana_terbuka.includes("adaptasi makhluk hidup") ? "Materi Adaptasi" : "Belum Terkunci"}
-                </p>
-              </div>
-
-              {/* 🟢 LENCANA 2: TUMBUHAN HIJAU */}
-              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("tumbuhan hijau") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
-                <span className="text-3xl mb-1">🌱</span>
-                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Botani Cilik</h4>
-                <p className="text-[9px] text-[#6B5C4E] font-bold">
-                  {stats.lencana_terbuka.includes("tumbuhan hijau") ? "Tumbuhan Hijau" : "Belum Terkunci"}
-                </p>
-              </div>
-
-              {/* 🟢 LENCANA 3: ORGAN TUBUH MANUSIA DAN HEWAN */}
-              <div className={`bg-white border border-[#D6CFC4] p-4 rounded-2xl text-center shadow-sm flex flex-col items-center justify-center hover:scale-[1.02] transition-all duration-300 ${stats.lencana_terbuka.includes("organ tubuh manusia dan hewan") || stats.lencana_terbuka.includes("organ_tubuh_manusia_hewan") ? "opacity-100 grayscale-0" : "opacity-30 grayscale select-none"}`}>
-                <span className="text-3xl mb-1">🧬</span>
-                <h4 className="font-black text-[11px] text-[#2C1A0E] tracking-tight">Anatomi Cilik</h4>
-                <p className="text-[9px] text-[#6B5C4E] font-bold">
-                  {stats.lencana_terbuka.includes("organ tubuh manusia dan hewan") || stats.lencana_terbuka.includes("organ_tubuh_manusia_hewan") ? "Organ Tubuh" : "Belum Terkunci"}
-                </p>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
         {session?.isGuest && (
           <div className="p-3.5 bg-[#FDE8DC] border border-[#C4621D]/20 text-[#C4621D] text-xs font-bold rounded-xl text-center shadow-inner">
             🔒 Riwayat kuis permanen dinonaktifkan di mode Guest. Yuk, pendaftaran akun untuk simpan lencanamu!

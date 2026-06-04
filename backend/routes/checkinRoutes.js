@@ -1,4 +1,4 @@
-// backend/routes/checkin.js
+// backend/routes/checkinRoutes.js
 import express from 'express';
 // 🟢 SINKRONISASI: Impor fungsi getCheckInHistory yang baru kita buat di controller
 import { handleCheckIn, getStatusCheckIn, getCheckInHistory } from '../controllers/checkinController.js';
