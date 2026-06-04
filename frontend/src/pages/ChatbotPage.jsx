@@ -277,14 +277,13 @@ const ChatbotPage = ({ session }) => {
                       </div>
                     )}
 
-                    {index > 0 && (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 ml-1 mt-0.5">
-                        <span className="text-[10px] text-[#6B5C4E] font-black uppercase tracking-wide mr-1 hidden sm:block">Jawaban ini:</span>
-                        <div className="flex gap-2">
-                          <button className="text-[11px] font-bold px-3 py-1.5 border border-[#D6CFC4] rounded-full text-[#2C1A0E] bg-white hover:bg-[#FAF7F2] shadow-xs active:scale-95 transition-transform">👍 Mudah dipahami</button>
-                          <button className="text-[11px] font-bold px-3 py-1.5 border border-[#D6CFC4] rounded-full text-[#2C1A0E] bg-white hover:bg-[#FDE8DC] shadow-xs active:scale-95 transition-transform">👎 Kurang jelas</button>
-                        </div>
-                      </div>
+                    {index > 0 && !(
+                      msg.content.includes('⚠️') || 
+                      msg.content.includes('Maaf, pertanyaan itu belum ada') || 
+                      msg.topicTag === 'Sistem Peringatan' || 
+                      msg.topicTag === 'Sistem Moderasi'
+                    
+
                     )}
                   </div>
                 </div>
