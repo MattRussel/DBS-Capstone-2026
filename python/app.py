@@ -272,7 +272,7 @@ class ScreenTimeManager:
             s["reminded_30"] = True
             r.update({
                 "reminder": "Sudah 30 menit belajar! 🌟 Istirahat sebentar.",
-                "suggestion": random.choice(ACTIVITY_SUGGESTIONS),
+                "suggestion": random.choice(ACTIVITY_SUGGESTIONS),,
                 "should_break": True,
             })
         elif d >= 20 and not s["reminded_20"]:
@@ -621,7 +621,6 @@ def chat(req: ChatRequest):
 @app.post("/moderation")
 def check_moderation(req: ModerationRequest):
     return moderator.check(req.text, req.session_id)
-
 
 if __name__ == "__main__":
     import uvicorn
