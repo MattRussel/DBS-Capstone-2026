@@ -1,15 +1,11 @@
 // backend/controllers/quizController.js
+// backend/controllers/quizController.js
 import * as quizService from '../services/quizService.js';
 
-/**
- * 📡 Menangani pengambilan daftar soal kuis baru secara dinamis
- * URL target dari Router: POST /api/quiz/start
- */
 export const getNewQuizQuestions = async (req, res) => {
   try {
     const { topik } = req.body;
 
-    // Tameng validasi utama agar kueri ke TiDB tidak pincang
     if (!topik) {
       return res.status(400).json({ 
         success: false, 
@@ -17,15 +13,18 @@ export const getNewQuizQuestions = async (req, res) => {
       });
     }
 
-    console.log(`🎲 [Quiz Controller] Memanggil generator kuis dari database AI untuk topik: ${topik}`);
+    console.log(`🎲 [Quiz Controller] Menembak generator kuis lokal untuk topik: ${topik}`);
     
-    // Memanggil service terpadu yang menjembatani endpoint /generate-quiz milik Python
+    // 1. Ambil data mentah dari quizService.js
     const quizData = await quizService.generateQuizSOAL(topik);
 
-    // Ambil array murni hasil ekstraksi data pool dari service
-    const arraySoalMurni = quizData.data || [];
+    // 2. Ambil isi array soalnya (baik dari properti .content maupun .quiz_questions)
+    const arraySoalMurni = quizData.content || quizData.quiz_questions || quizData.data || [];
 
-    // Mengembalikan struktur data flat agar lolos sensor Array.isArray(result.data) di QuizPage.jsx
+    console.log("📦 [DEBUG CONTROLLER] Jumlah soal yang berhasil diekstrak:", arraySoalMurni.length);
+
+    // 3. 🟢 SINKRONISASI MUTLAK FRONTEND:
+    // Bungkus ke dalam properti 'data' agar lolos validasi Array.isArray(result.data) di QuizPage.jsx!
     return res.status(200).json({
       success: true,
       type: "QUIZ_DATA",
