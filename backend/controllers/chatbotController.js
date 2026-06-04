@@ -21,14 +21,24 @@ export const processChatbotRequest = async (req, res) => {
 
   try {
     // 🟢 PROTEKSI DATA: Paksa ID Pengguna menjadi Integer (Angka Murni) 
-    // Ini mencegah error Foreign Key / salah kueri data antar-user di database Supabase
     const cleanUserId = parseInt(user_id, 10);
 
     // Menembak langsung ke service untuk diteruskan ke Python FastAPI RAG / Supabase Cloud
     const hasil = await chatbotService.handleChatOrQuizLogic(cleanUserId, pesan, topik, isQuizMode);
     
-    // 🟢 FORMAT SUKSES TERBAIK: Mengirimkan seluruh objek bodi data murni hasil return service
-    // Menjaga kecocokan data dengan komponen chatbot kelompokmu di Frontend React
+    // 🛡️ TAMENG PENYELARAS MODERASI (MODIFICATION LAYER):
+    // Jika teks di dalam service mendeteksi simbol '⚠️' dari Python
+    if (hasil.data && hasil.data.text && hasil.data.text.includes('⚠️')) {
+      console.log("🛡️ [CONTROLLER DETECT] Menyuntikkan teks warning kata kotor ke dalam objek hasil secara aman!");
+      
+      // Suntikkan properti 'answer' ke dalam objek 'hasil' tanpa merusak struktur aslinya
+      hasil.answer = hasil.data.text; 
+    } else {
+      // Untuk chat normal, pastikan properti 'answer' juga terisi di luar agar frontend tidak bingung
+      hasil.answer = hasil.data ? hasil.data.text : hasil.answer;
+    }
+
+    // 🟢 TETAP MEMAKAI FORMAT ASLI KELOMPOK (100% AMAN DARI CRASH FRONTEND)
     return res.status(200).json({
       success: true,
       type: hasil.type, 
@@ -38,10 +48,9 @@ export const processChatbotRequest = async (req, res) => {
   } catch (error) {
     console.error("❌ [Chatbot Controller Error]:", error.message);
 
-    // 🟢 SENSOR EROR KASAR (ANTI-POPUP DATABASE): Saring teks teknis sistem dari mata anak-anak
+    // 🟢 SENSOR EROR KASAR (ANTI-POPUP DATABASE)
     let pesanErorRamah = "Waduh, Profesor sedang merapikan buku di perpustakaan laboratorium. Coba kirim pesan lagi sebentar ya! 🔬✨";
 
-    // Deteksi spesifik jika eror berasal dari putusnya jembatan API RAG Flask/FastAPI via Ngrok
     if (
       error.message.toLowerCase().includes("fetch") || 
       error.message.toLowerCase().includes("ngrok") || 

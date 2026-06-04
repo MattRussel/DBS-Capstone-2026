@@ -10,7 +10,6 @@ import supabase from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
 import checkinRoutes from './routes/checkinRoutes.js'; 
 import chatbotRouter from './routes/chatbotRoutes.js';
-import quizRoutes from './routes/quizRoutes.js';
 
 const app = express();
 
@@ -27,7 +26,6 @@ app.use(express.json()); // Supaya server bisa membaca kiriman data format JSON 
 app.use('/api/user', userRoutes);       // Autentikasi (Registrasi & Login)
 app.use('/api/checkin', checkinRoutes); // Absensi Harian (Streak Check-in)
 app.use('/api/chatbot', chatbotRouter);  // Obrolan Teman Belajar RAG AI
-app.use('/api/quiz', quizRoutes);       // Kuis Mandiri 15 Topik Sains
 
 // 🧪 Jalur Tes Kesehatan API & Database Supabase
 app.get('/', async (req, res) => {

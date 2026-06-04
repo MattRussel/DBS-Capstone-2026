@@ -140,8 +140,7 @@ const ChatbotPage = ({ session }) => {
         },
         body: JSON.stringify({
           user_id: parseInt(session?.id, 10) || localStorage.getItem('student_id') || 1,
-          pesan: userMessage,
-          isQuizMode: false
+          pesan: userMessage
         })
       });
 

@@ -20,7 +20,7 @@ export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) =
       },
       body: JSON.stringify({
         message: pesan, 
-        session_id: `chat_user_${user_id}` 
+        session_id: String(user_id)
       })
     });
 
