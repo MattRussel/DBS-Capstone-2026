@@ -15,39 +15,42 @@ from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 from tensorflow.keras import losses
 
+# ---------------------------------------------------------------------------
+# Logging & Setup Aplikasi
+# ---------------------------------------------------------------------------
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+app = FastAPI(
+    title="Chatbot IPA SD - AI Engine",
+    description="Backend API berbasis FastAPI untuk klasifikasi topik (TensorFlow) dan RAG (TiDB Vector)",
+    version="1.0.0"
+)
 
 # ---------------------------------------------------------------------------
-# Config
+# Konfigurasi Environment & Database
 # ---------------------------------------------------------------------------
-
+# Mencari config.env di root atau di direktori yang sama dengan file script
 if os.path.exists("config.env"):
     load_dotenv("config.env")
 else:
-    load_dotenv(os.path.join(os.path.dirname(__file__), "config.env"))
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.env"))
 
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", ""),
-    "port": int(os.getenv("DB_PORT", 4000)),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "database": os.getenv("DB_NAME"),
-    "ssl_disabled": False,
+    "host":               os.getenv("DB_HOST"),
+    "port":               int(os.getenv("DB_PORT", 4000)),
+    "user":               os.getenv("DB_USER"),
+    "password":           os.getenv("DB_PASSWORD"),
+    "database":           os.getenv("DB_NAME"),
+    "ssl_disabled":       False,
     "connection_timeout": 60,
-    "use_pure": True
 }
 
-
 # ---------------------------------------------------------------------------
-# Custom Keras objects merekonstruksi arsitektur + compile config
-# dari file .keras.
+# Custom Keras Objects (Untuk Rekonstruksi Model .keras)
 # ---------------------------------------------------------------------------
-
 @tf.keras.saving.register_keras_serializable()
 class AttentionPooling(tf.keras.layers.Layer):
-
     def build(self, input_shape):
         self.attention_weights = self.add_weight(
             name="attention_weights",
@@ -58,9 +61,7 @@ class AttentionPooling(tf.keras.layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs):
-        scores = tf.tensordot(
-            inputs, self.attention_weights, axes=[[2], [0]]
-        )
+        scores = tf.tensordot(inputs, self.attention_weights, axes=[[2], [0]])
         scores = tf.nn.softmax(scores, axis=-1)
         return tf.reduce_sum(inputs * tf.expand_dims(scores, -1), axis=1)
 
@@ -70,7 +71,6 @@ class AttentionPooling(tf.keras.layers.Layer):
 
 @tf.keras.saving.register_keras_serializable()
 class FocalLoss(losses.Loss):
-
     def __init__(self, gamma=2.0, alpha=0.25, **kwargs):
         kwargs.pop("dtype", None)
         super().__init__(**kwargs)
@@ -78,10 +78,10 @@ class FocalLoss(losses.Loss):
         self.alpha = alpha
 
     def call(self, y_true, y_pred):
-        n = tf.shape(y_pred)[-1]
+        n  = tf.shape(y_pred)[-1]
         oh = tf.one_hot(tf.cast(y_true, tf.int32), n)
         ce = -oh * tf.math.log(y_pred + 1e-7)
-        w = self.alpha * tf.pow(1.0 - y_pred, self.gamma)
+        w  = self.alpha * tf.pow(1.0 - y_pred, self.gamma)
         return tf.reduce_mean(tf.reduce_sum(w * ce, axis=-1))
 
     def get_config(self):
@@ -92,8 +92,6 @@ class FocalLoss(losses.Loss):
 
 @tf.keras.saving.register_keras_serializable()
 class OneHotMAE(losses.Loss):
-    """MAE antara label one-hot dan probabilitas prediksi."""
-
     def __init__(self, name="mae", **kwargs):
         kwargs.pop("dtype", None)
         super().__init__(name=name, **kwargs)
@@ -104,16 +102,11 @@ class OneHotMAE(losses.Loss):
     def get_config(self):
         return super().get_config()
 
-
 # ---------------------------------------------------------------------------
-# Helpers moderation
+# Komponen Sistem 1: Moderation System
 # ---------------------------------------------------------------------------
-
 def normalize_leet(text):
-    leet = {
-        "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
-        "7": "t", "8": "b", "@": "a", "$": "s"
-    }
+    leet = {"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "8": "b", "@": "a", "$": "s"}
     return "".join(leet.get(c, c) for c in text)
 
 
@@ -127,25 +120,26 @@ def load_toxic_words(csv_path):
     try:
         with open(csv_path, "r", encoding="utf-8-sig") as f:
             for row in csv.DictReader(f):
-                w = row.get("text", "")
+                w = row.get("text", "").strip().lower()
                 if w:
-                    words.add(w.strip().lower())
+                    words.add(w)
     except FileNotFoundError:
-        log.warning("File toxic tidak ditemukan: %s", csv_path)
+        log.warning("File dataset kata kasar tidak ditemukan di: %s", csv_path)
     return words
 
-
-# ---------------------------------------------------------------------------
-# ModerationSystem
-# ---------------------------------------------------------------------------
 
 class ModerationSystem:
     COOLDOWN_MINUTES = 5
 
     def __init__(self, toxic_csv="dataset/dataset_kata_kasar.csv"):
         self.toxic_phrases = load_toxic_words(toxic_csv)
+<<<<<<< HEAD
         self.toxic_words = {
             normalize_leet(w.strip())
+=======
+        self.toxic_words   = {
+            normalize_leet(w)
+>>>>>>> 8add35d024a70cf190b50080cb7de5929717dcf6
             for p in self.toxic_phrases
             for w in p.split()
             if len(normalize_leet(w.strip())) >= 3
@@ -181,11 +175,10 @@ class ModerationSystem:
 
     def check(self, text, sid):
         if self._is_on_cooldown(sid):
-            s = self._get_session(sid)
-            rem = (s["cooldown_until"] - datetime.now()).seconds // 60 + 1
-            rem = max(1, rem)
+            s   = self._get_session(sid)
+            rem = max(1, (s["cooldown_until"] - datetime.now()).seconds // 60 + 1)
             return {
-                "status": "cooldown",
+                "status":  "cooldown",
                 "strikes": s["count"],
                 "matched": None,
                 "message": f"Coba lagi dalam {rem} menit 🕐",
@@ -195,47 +188,36 @@ class ModerationSystem:
         s = self._get_session(sid)
 
         if not r["is_toxic"]:
-            return {
-                "status": "safe",
-                "strikes": s["count"],
-                "message": None,
-                "matched": None
-            }
+            return {"status": "safe", "strikes": s["count"], "message": None, "matched": None}
 
         s["count"] += 1
         k = s["count"]
 
         if k >= 3:
-            s["cooldown_until"] = (
-                datetime.now() + timedelta(minutes=self.COOLDOWN_MINUTES)
-            )
+            s["cooldown_until"] = datetime.now() + timedelta(minutes=self.COOLDOWN_MINUTES)
             return {
-                "status": "cooldown",
+                "status":  "cooldown",
                 "strikes": k,
                 "matched": r["matched"],
-                "message": (
-                    f"Istirahat dulu {self.COOLDOWN_MINUTES} menit ya 🕐"
-                ),
+                "message": f"Istirahat dulu {self.COOLDOWN_MINUTES} menit ya 🕐",
             }
         if k == 2:
             return {
-                "status": "warning",
+                "status":  "warning",
                 "strikes": 2,
                 "matched": r["matched"],
                 "message": "Sudah 2 peringatan. Yuk jaga kata-katanya ya 😊",
             }
         return {
-            "status": "warning",
+            "status":  "warning",
             "strikes": 1,
             "matched": r["matched"],
             "message": "Yuk gunakan bahasa yang lebih sopan ya 😊",
         }
 
-
 # ---------------------------------------------------------------------------
-# ScreenTimeManager
+# Komponen Sistem 2: Screen Time Manager
 # ---------------------------------------------------------------------------
-
 ACTIVITY_SUGGESTIONS = [
     "🏃 Coba lari-lari kecil di halaman ya!",
     "📖 Baca buku cerita favoritmu 10 menit!",
@@ -243,18 +225,16 @@ ACTIVITY_SUGGESTIONS = [
     "💪 Lakukan peregangan badan!",
 ]
 
-
 class ScreenTimeManager:
-
     def __init__(self):
         self.sessions = {}
 
     def _get_session(self, sid):
         if sid not in self.sessions:
             self.sessions[sid] = {
-                "start_time": datetime.now(),
-                "reminded_20": False,
-                "reminded_30": False,
+                "start_time":   datetime.now(),
+                "reminded_20":  False,
+                "reminded_30":  False,
             }
         return self.sessions[sid]
 
@@ -263,45 +243,47 @@ class ScreenTimeManager:
         d = (datetime.now() - s["start_time"]).total_seconds() / 60
         r = {
             "duration_minutes": round(d, 1),
-            "reminder": None,
-            "suggestion": None,
-            "should_break": False,
+            "reminder":         None,
+            "suggestion":       None,
+            "should_break":     False,
         }
 
         if d >= 30 and not s["reminded_30"]:
             s["reminded_30"] = True
             r.update({
+<<<<<<< HEAD
                 "reminder": "Sudah 30 menit belajar! 🌟 Istirahat sebentar.",
                 "suggestion": random.choice(ACTIVITY_SUGGESTIONS),
+=======
+                "reminder":     "Sudah 30 menit belajar! 🌟 Istirahat sebentar ya.",
+                "suggestion":   random.choice(ACTIVITY_SUGGESTIONS),
+>>>>>>> 8add35d024a70cf190b50080cb7de5929717dcf6
                 "should_break": True,
             })
         elif d >= 20 and not s["reminded_20"]:
             s["reminded_20"] = True
-            r["reminder"] = (
-                "Sudah 20 menit! 📚 Sebentar lagi waktunya istirahat ya."
-            )
+            r["reminder"] = "Sudah 20 menit! 📚 Sebentar lagi waktunya istirahat ya."
 
         return r
 
-
 # ---------------------------------------------------------------------------
-# RAGRetriever (TiDB Vector)
+# Komponen Sistem 3: RAG Retriever (TiDB Vector)
 # ---------------------------------------------------------------------------
-
 class RAGRetriever:
-
     def __init__(self):
+        print("Loading SentenceTransformer (bge-m3)...")
         self.embedder = SentenceTransformer("BAAI/bge-m3")
-        self.db = None
-        self.cursor = None
+        self.db       = None
+        self.cursor   = None
         self._connect()
 
     def _connect(self):
         try:
-            self.db = mysql.connector.connect(**DB_CONFIG)
+            self.db     = mysql.connector.connect(**DB_CONFIG)
             self.cursor = self.db.cursor(dictionary=True)
+            log.info("Berhasil terhubung ke database TiDB.")
         except Exception as e:
-            log.error(f"Gagal inisialisasi koneksi TiDB: {str(e)}")
+            log.error(f"Gagal koneksi awal ke TiDB: {e}")
 
     def _ensure_connection(self):
         try:
@@ -311,12 +293,11 @@ class RAGRetriever:
             self._connect()
 
     def get_best_answer(self, query, threshold=0.5):
-        try:
-            emb = self.embedder.encode(query, normalize_embeddings=True)
-            clean_floats = [float(v) for v in emb]
-            emb_str = "[" + ",".join(f"{v:.8f}" for v in clean_floats) + "]"
+        emb     = self.embedder.encode(query, normalize_embeddings=True)
+        emb_str = "[" + ",".join(f"{v:.8f}" for v in emb.tolist()) + "]"
 
-            self._ensure_connection()
+        self._ensure_connection()
+        try:
             self.cursor.execute(
                 """
                 SELECT soal, jawaban, topik, subtopik, contoh, konteks,
@@ -328,205 +309,65 @@ class RAGRetriever:
                 (emb_str,),
             )
             results = self.cursor.fetchall()
-
-            if not results or results[0]["distance"] > threshold:
-                return {
-                    "answer": (
-                        "Maaf, pertanyaan itu belum ada di pengetahuan saya 😊"
-                    ),
-                    "category": None,
-                    "subtopik": "",
-                    "question_matched": None,
-                    "similarity_score": 0.0,
-                }
-
-            best = results[0]
-            jawaban_final = (
-                best.get("jawaban") if best.get("jawaban")
-                else "Jawaban tidak tersedia."
-            )
-
-            return {
-                "answer": jawaban_final,
-                "category": best.get("topik"),
-                "subtopik": best.get("subtopik", ""),
-                "question_matched": best.get("soal"),
-                "similarity_score": round(1 - best["distance"], 4),
-            }
         except Exception as e:
-            log.error(f"Error pada RAG Retriever (get_best_answer): {str(e)}")
+            log.error(f"Error saat mengeksekusi query database RAG: {e}")
+            results = None
+
+        if not results or results[0]["distance"] > threshold:
             return {
-                "answer": (
-                    "Waduh, otak pencarian saya sedang terganggu 😔 "
-                    "Coba tanyakan lagi ya."
-                ),
-                "category": None,
-                "subtopik": "",
-                "question_matched": None,
-                "similarity_score": 0.0,
+                "answer":            "Maaf, pertanyaan itu belum ada di pengetahuan saya 😊",
+                "category":          None,
+                "subtopik":          "",
+                "question_matched":  None,
+                "similarity_score":  0.0,
             }
 
-    def get_quiz_questions(self, topik, limit=3):
-        try:
-            self._ensure_connection()
-
-            self.cursor.execute(
-                """
-                SELECT soal, jawaban FROM knowledge
-                WHERE topik LIKE %s OR subtopik LIKE %s
-                ORDER BY RAND()
-                LIMIT %s
-                """,
-                (f"%{topik}%", f"%{topik}%", limit),
-            )
-            rows = self.cursor.fetchall()
-
-            if not rows:
-                self.cursor.execute(
-                    """
-                    SELECT soal, jawaban FROM knowledge
-                    ORDER BY RAND()
-                    LIMIT %s
-                    """,
-                    (limit,),
-                )
-                rows = self.cursor.fetchall()
-
-            if not rows:
-                return [
-                    {
-                        "soal": (
-                            f"Materi kuis untuk topik '{topik}' "
-                            f"sedang dipersiapkan oleh Tim AI kami! ✨"
-                        ),
-                        "opsi": [
-                            "A. Semangat", "B. Pantang Menyerah",
-                            "C. Sukses Capstone", "D. Kerja Bagus"
-                        ],
-                        "jawaban_benar": "A"
-                    }
-                ]
-
-            self.cursor.execute(
-                "SELECT jawaban FROM knowledge ORDER BY RAND() LIMIT 30"
-            )
-            all_distractors = [
-                r["jawaban"] for r in self.cursor.fetchall() if r.get("jawaban")
-            ]
-
-            quiz_questions = []
-            for row in rows:
-                correct_ans = row.get("jawaban")
-                if not correct_ans or not isinstance(correct_ans, str):
-                    correct_ans = (
-                        "Pernyataan atau penjelasan yang tepat terkait materi."
-                    )
-
-                correct_ans_short = correct_ans.split("\n")[0][:120].strip()
-                if not correct_ans_short:
-                    correct_ans_short = "Pernyataan yang tepat."
-
-                distractors = []
-                for d in all_distractors:
-                    if not d or not isinstance(d, str):
-                        continue
-                    d_short = d.split("\n")[0][:120].strip()
-                    if (d_short and d_short != correct_ans_short and
-                            d_short not in distractors):
-                        distractors.append(d_short)
-
-                while len(distractors) < 3:
-                    distractors.append(
-                        f"Pembahasan materi terkait {topik} "
-                        f"bagian {len(distractors) + 1}."
-                    )
-
-                distractors = distractors[:3]
-
-                options = [correct_ans_short] + distractors
-                random.shuffle(options)
-
-                correct_idx = options.index(correct_ans_short)
-                correct_letter = ["A", "B", "C", "D"][correct_idx]
-
-                formatted_options = []
-                for i, opt in enumerate(options):
-                    letter = ["A", "B", "C", "D"][i]
-                    formatted_options.append(f"{letter}. {opt}")
-
-                quiz_questions.append({
-                    "soal": row.get(
-                        "soal",
-                        "Pertanyaan belum terkonfigurasi dengan baik."
-                    ),
-                    "opsi": formatted_options,
-                    "jawaban_benar": correct_letter
-                })
-
-            return quiz_questions
-        except Exception as e:
-            log.error(
-                f"Error pada RAG Retriever (get_quiz_questions): {str(e)}"
-            )
-            return [
-                {
-                    "soal": (
-                        f"Gagal memuat kuis otomatis untuk topik '{topik}'. "
-                        f"Silakan coba lagi."
-                    ),
-                    "opsi": [
-                        "A. Coba Lagi", "B. Segarkan Halaman",
-                        "C. Hubungi Admin", "D. Lewati"
-                    ],
-                    "jawaban_benar": "A"
-                }
-            ]
-
+        best = results[0]
+        return {
+            "answer":           best["jawaban"],
+            "category":          best["topik"],
+            "subtopik":          best.get("subtopik", ""),
+            "question_matched": best["soal"],
+            "similarity_score": round(1 - best["distance"], 4),
+        }
 
 # ---------------------------------------------------------------------------
-# Load semua artefak saat startup
+# Initializing Artefak & Global Instantiation
 # ---------------------------------------------------------------------------
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-print("Loading model TensorFlow (SavedModel format)...")
-tf_model = tf.saved_model.load(
-    os.path.join(BASE_DIR, "semantic_faq_savedmodel")
+print("Loading model TensorFlow ...")
+tf_model = tf.keras.models.load_model(
+    os.path.join(BASE_DIR, "semantic_faq_model.keras"),
+    custom_objects={
+        "AttentionPooling": AttentionPooling,
+        "FocalLoss":        FocalLoss,
+        "OneHotMAE":        OneHotMAE,
+    }
 )
 
 with open(os.path.join(BASE_DIR, "label_mapping.json")) as f:
     label_map = {int(k): v for k, v in json.load(f).items()}
 
-retriever = RAGRetriever()
-moderator = ModerationSystem()
+retriever  = RAGRetriever()
+moderator  = ModerationSystem()
 screen_mgr = ScreenTimeManager()
 
-print("Semua komponen berhasil di-load ✔")
-
-
 # ---------------------------------------------------------------------------
-# FastAPI
+# Pydantic Schemas untuk Request Body
 # ---------------------------------------------------------------------------
-
-app = FastAPI(title="Chatbot IPA SD", version="2.0")
-
-
 class ChatRequest(BaseModel):
-    message: str
+    message:    str
     session_id: str = "default"
-    history: list = []
 
 
 class ModerationRequest(BaseModel):
-    text: str
+    text:       str
     session_id: str = "default"
 
-
-class QuizRequest(BaseModel):
-    topik: str
-    jumlah_soal: int = 3
-
-
+# ---------------------------------------------------------------------------
+# FastAPI Endpoints
+# ---------------------------------------------------------------------------
 @app.get("/")
 def root():
     return {"message": "Chatbot IPA SD API aktif", "docs": "/docs"}
@@ -534,11 +375,18 @@ def root():
 
 @app.get("/health")
 def health():
+    # Menilai status koneksi database untuk healthcheck murni
+    db_status = "connected"
+    try:
+        retriever._ensure_connection()
+    except Exception:
+        db_status = "disconnected"
+
     return {
         "status": "ok",
         "components": {
-            "tf_model": "loaded",
-            "tidb": "connected",
+            "tf_model":   "loaded",
+            "tidb":       db_status,
             "moderation": "active",
             "screen_time": "active",
         },
@@ -551,12 +399,11 @@ def chat(req: ChatRequest):
     if not req.message.strip():
         raise HTTPException(status_code=422, detail="pesan kosong")
 
-    # 1. Moderasi dulu sebelum lanjut
+    # 1. Jalankan filter moderasi kata kasar terlebih dahulu
     mod_result = moderator.check(req.message, req.session_id)
-    status_mod = str(mod_result.get("status", "")).lower()
-    if status_mod in ["cooldown", "warning"]:
-        print(f"🛡️ [SISTEM MODERASI] Terdeteksi Pelanggaran! Status: {status_mod} | Strikes: {mod_result.get('strikes')}")
+    if mod_result["status"] == "cooldown":
         return {
+<<<<<<< HEAD
             "answer": mod_result.get("message"), # Mengambil pesan dinamis (Peringatan 1 / 2 / Cooldown)
             "reply_message": mod_result.get("message"),
             "response": mod_result.get("message"),
@@ -567,54 +414,42 @@ def chat(req: ChatRequest):
             "similarity_score": 0.0,
             "question_matched": f"Pelanggaran ke-{mod_result.get('strikes')}",
             "moderation": mod_result # Menyertakan objek utuh (status, strikes, message) ke Express
+=======
+            "answer":          mod_result["message"],
+            "moderation":      mod_result,
+            "category":        None,
+            "predicted_topic": None,
+            "tf_confidence":   0.0,
+            "similarity_score": 0.0,
+            "question_matched": None,
+>>>>>>> 8add35d024a70cf190b50080cb7de5929717dcf6
         }
-        
 
-    # 2. Prediksi topik pakai model TF
-    try:
-        input_tensor = tf.constant([req.message], dtype=tf.string)
+    # 2. Prediksi topik menggunakan model Keras (.predict aman)
+    pred            = tf_model.predict(tf.constant([req.message], dtype=tf.string), verbose=0)
+    idx             = int(np.argmax(pred))
+    predicted_topic = label_map[idx]
+    tf_confidence   = float(np.max(pred))
 
-        if (hasattr(tf_model, 'signatures') and
-                'serving_default' in tf_model.signatures):
-            pred_output = tf_model.signatures['serving_default'](input_tensor)
-            output_key = list(pred_output.keys())[0]
-            pred_array = pred_output[output_key].numpy()
-        else:
-            pred_res = tf_model(input_tensor)
-            pred_array = (
-                pred_res.numpy() if hasattr(pred_res, 'numpy')
-                else np.array(pred_res)
-            )
-
-        idx = int(np.argmax(pred_array[0]))
-        predicted_topic = label_map.get(idx, "Umum")
-        tf_confidence = float(np.max(pred_array[0]))
-    except Exception as e:
-        log.error(f"Gagal eksekusi prediksi TensorFlow: {str(e)}")
-        predicted_topic = "Umum"
-        tf_confidence = 0.0
-
-    # 3. Ambil jawaban dari TiDB (RAG)
+    # 3. Ambil pencarian kemiripan teks dari database TiDB Vector
     result = retriever.get_best_answer(req.message)
 
-    # 4. Cek screen time
-    st = screen_mgr.check(req.session_id)
+    # 4. Validasi Screen Time Tracker
+    st     = screen_mgr.check(req.session_id)
     answer = result["answer"]
     if st["reminder"]:
         answer += f"\n\n⏰ {st['reminder']}"
 
     return {
-        "answer": answer,
-        "reply_message": answer,
-        "response": answer,
-        "category": result["category"],
-        "subtopik": result.get("subtopik", ""),
-        "predicted_topic": predicted_topic,
-        "tf_confidence": tf_confidence,
+        "answer":           answer,
+        "category":          result["category"],
+        "subtopik":          result.get("subtopik", ""),
+        "predicted_topic":  predicted_topic,
+        "tf_confidence":    tf_confidence,
         "similarity_score": result["similarity_score"],
         "question_matched": result.get("question_matched"),
-        "moderation": mod_result,
-        "screen_time": st,
+        "moderation":       mod_result,
+        "screen_time":      st,
     }
 
 
@@ -622,6 +457,9 @@ def chat(req: ChatRequest):
 def check_moderation(req: ModerationRequest):
     return moderator.check(req.text, req.session_id)
 
+# ---------------------------------------------------------------------------
+# App Runner
+# ---------------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
