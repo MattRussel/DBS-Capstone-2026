@@ -125,7 +125,7 @@ def clean_text_mod(text):
 def load_toxic_words(csv_path):
     words = set()
     try:
-        with open(csv_path, "r", encoding="utf-8") as f:
+        with open(csv_path, "r", encoding="utf-8-sig") as f:
             for row in csv.DictReader(f):
                 w = row.get("text", "")
                 if w:
@@ -145,10 +145,10 @@ class ModerationSystem:
     def __init__(self, toxic_csv="dataset/dataset_kata_kasar.csv"):
         self.toxic_phrases = load_toxic_words(toxic_csv)
         self.toxic_words = {
-            normalize_leet(w)
+            normalize_leet(w.strip())
             for p in self.toxic_phrases
             for w in p.split()
-            if len(normalize_leet(w)) >= 3
+            if len(normalize_leet(w.strip())) >= 3
         }
         self.sessions = {}
 
@@ -272,7 +272,7 @@ class ScreenTimeManager:
             s["reminded_30"] = True
             r.update({
                 "reminder": "Sudah 30 menit belajar! 🌟 Istirahat sebentar.",
-                "suggestion": random.choice(ACTIVITY_SUGGESTIONS),,
+                "suggestion": random.choice(ACTIVITY_SUGGESTIONS),
                 "should_break": True,
             })
         elif d >= 20 and not s["reminded_20"]:
@@ -563,8 +563,8 @@ def chat(req: ChatRequest):
             "category": "Moderasi",
             "subtopik": status_mod, 
             "predicted_topic": "Sistem Peringatan",
-            "tf_confidence": 1.0,
-            "similarity_score": 1.0,
+            "tf_confidence": 0.0,
+            "similarity_score": 0.0,
             "question_matched": f"Pelanggaran ke-{mod_result.get('strikes')}",
             "moderation": mod_result # Menyertakan objek utuh (status, strikes, message) ke Express
         }

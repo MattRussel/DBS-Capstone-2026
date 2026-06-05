@@ -2,7 +2,8 @@
 import * as chatbotService from '../services/chatbotService.js';
 
 export const processChatbotRequest = async (req, res) => {
-  const { user_id, pesan, topik, isQuizMode } = req.body;
+  // 🟢 PERBAIKAN 1: Hapus variabel isQuizMode dari req.body
+  const { user_id, pesan, topik } = req.body;
 
   // 🛡️ VALIDASI PENGUNCI API
   if (!user_id) {
@@ -23,8 +24,8 @@ export const processChatbotRequest = async (req, res) => {
     // 🟢 PROTEKSI DATA: Paksa ID Pengguna menjadi Integer (Angka Murni) 
     const cleanUserId = parseInt(user_id, 10);
 
-    // Menembak langsung ke service untuk diteruskan ke Python FastAPI RAG / Supabase Cloud
-    const hasil = await chatbotService.handleChatOrQuizLogic(cleanUserId, pesan, topik, isQuizMode);
+    // 🟢 PERBAIKAN 2: Panggil handleChatOrLogic tanpa menyertakan argumen isQuizMode
+    const hasil = await chatbotService.handleChatOrLogic(cleanUserId, pesan, topik);
     
     // 🛡️ TAMENG PENYELARAS MODERASI (MODIFICATION LAYER):
     // Jika teks di dalam service mendeteksi simbol '⚠️' dari Python
@@ -65,8 +66,6 @@ export const processChatbotRequest = async (req, res) => {
     });
   }
 };
-
-// Tambahkan di bagian paling bawah backend/controllers/chatbotController.js
 
 // 🟢 FUNGSI BARU: Mengambil riwayat chat berdasarkan Student ID/User ID untuk ParentPage
 export const getChatHistory = async (req, res) => {

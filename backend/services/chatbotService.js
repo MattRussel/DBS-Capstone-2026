@@ -5,94 +5,136 @@ import * as chatbotRepository from '../repositories/chatbotRepository.js';
 const AI_ENGINEER_API_URL = 'https://groin-multitude-earphone.ngrok-free.dev';
 
 /**
- * 💬 LOGIKA CHATBOT REGULER (POST /chat) - INTEGRASI SENSOR MODERASI TIM AI
+ * 💬 LOGIKA CHATBOT REGULER (POST /chat) - TWO-STEP MODERATION & RAG INTEGRATION
  */
-export const handleChatOrQuizLogic = async (user_id, pesan, topik, isQuizMode) => {
+export const handleChatOrLogic = async (user_id, pesan, topik) => {
   try {
-    console.log(`📡 Meneruskan chat ke API Publik Ngrok Tim AI rute /chat untuk diproses...`);
+    const cleanBaseUrl = AI_ENGINEER_API_URL.replace(/\/$/, '');
+    console.log(`📡 [STEP 1] Menembak Gerbang /moderation untuk verifikasi teks: "${pesan}"`);
 
-    const aiResponse = await fetch(`${AI_ENGINEER_API_URL.replace(/\/$/, '')}/chat`, {
+    // 🛡️ LALU LINTAS 1: Panggil rute /moderation milik Python untuk cek blacklist kata kotor
+    const modResponse = await fetch(`${cleanBaseUrl}/moderation`, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
+        'Content-Type': 'application/json', 
+        'Accept': 'application/json', 
+        'ngrok-skip-browser-warning': 'true' 
       },
       body: JSON.stringify({
-        message: pesan, 
+        text: String(pesan),
         session_id: String(user_id)
       })
     });
 
-    if (!aiResponse.ok) {
-      throw new Error(`API Tim AI merespons dengan status: ${aiResponse.status}`);
+    if (!modResponse.ok) {
+      throw new Error(`API Moderasi Python merespons dengan status: ${modResponse.status}`);
     }
 
-    const aiData = await aiResponse.json();
-    
-    // 🟢 INTERSEPTOR MODERASI: Membaca objek "moderation" hasil olahan moderator.check() di app.py
-    const infoModerasi = aiData.moderation;
-    
-    if (infoModerasi && (infoModerasi.status === "warning" || infoModerasi.status === "cooldown")) {
-      console.warn(`⚠️ [Moderasi Sistem] Terdeteksi kata kurang sopan dengan status: ${infoModerasi.status}`);
-      
-      // Ambil teks teguran langsung dari mesin Python (contoh: "Yuk gunakan bahasa yang lebih sopan ya 😊")
-      const teksTeguranPython = infoModerasi.message || "Yuk, gunakan bahasa yang lebih sopan di laboratorium sains ya! 😊🔬";
+    const modResultRaw = await modResponse.json();
+    console.log("📡 [MODERATION RAW DATA]:", JSON.stringify(modResultRaw));
+
+    // 🟢 JARING PENGAMAN EKSTRAKSI: Ambil status baik dari root langsung maupun jika dibungkus objek .data/.moderation
+    const infoModerasi = modResultRaw.data || modResultRaw.moderation || modResultRaw;
+    const statusMod = String(infoModerasi.status || '').toLowerCase();
+
+    // 🛑 JIKA TERDETEKSI KATA KOTOR: Potong alur dan kirim peringatan secara instan
+    if (statusMod === "warning" || statusMod === "cooldown") {
+      console.warn(`⚠️ [TAMENG AKTIF] Terdeteksi Pelanggaran! Status: ${statusMod} | Strikes: ${infoModerasi.strikes || 1}`);
+
+      // Ambil pesan teguran asli dinamis dari Python ("Yuk jaga kata-kata", "Istirahat dulu", dll)
+      const teksTeguran = infoModerasi.message || "Yuk, gunakan bahasa yang lebih sopan di laboratorium ya 😊";
+      const formatTeguranFinal = teksTeguran.includes('⚠️') ? teksTeguran : `⚠️ ${teksTeguran}`;
+
+      // 💾 Simpan log pelanggaran kata kotor ke database Supabase Cloud
+      console.log("⏳ [Supabase Insert] Menyimpan berkas pelanggaran ke chatbot_history...");
+      await chatbotRepository.saveChatMessage(user_id, pesan, formatTeguranFinal, {
+        topik: "Sistem Peringatan",
+        subtopik: statusMod,
+        konteks: "Peringatan Kata Kasar",
+        jenis_pertanyaan: "Moderasi",
+        kompleksitas: "0.00%" // Nilai keyakinan di-set ke 0.00% untuk penanda non-sains
+      });
 
       return {
         type: "CHAT_TEXT",
         data: {
-          text: `⚠️ ${teksTeguranPython}`,
-          predicted_topic: "Sistem Moderasi",
-          tf_confidence: "100.0%",
-          similarity_score: "100.00%"
+          text: formatTeguranFinal,
+          predicted_topic: "Sistem Peringatan", // Mengaktifkan layout warna oranye berkedip di frontend React
+          tf_confidence: "0.0%",
+          similarity_score: "0.00%"
         }
       };
     }
 
-    // --- ALUR NORMAL JIKA PESAN AMAN (SAFE) ---
+    // ---------------------------------------------------------------------------
+    // 🧠 LALU LINTAS 2: JALUR AMAN (SAFE) -> Teruskan ke RAG Model Sains Python
+    // ---------------------------------------------------------------------------
+    console.log(`📡 [STEP 2] Pesan dinyatakan aman. Menembak rute /chat untuk mencari data sains...`);
+    const aiResponse = await fetch(`${cleanBaseUrl}/chat`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Accept': 'application/json', 
+        'ngrok-skip-browser-warning': 'true' 
+      },
+      body: JSON.stringify({
+        message: String(pesan), 
+        session_id: String(user_id),
+        history: []
+      })
+    });
+
+    if (!aiResponse.ok) {
+      throw new Error(`API Chatbot RAG merespons dengan status: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
     const balasanAI = aiData.answer || "Halo Ilmuwan Cilik! Profesor siap membantu.";
 
-    // Parsing skor kepastian klasifikasi model TF Python
+    // Kondisi fallback jika jawaban melosot ke luar materi sains utama
+    let namaTopikFinal = aiData.predicted_topic || topik || "Tidak Ada Topik";
+    if (balasanAI.includes("belum ada di pengetahuan saya") || namaTopikFinal === "Tidak terdeteksi" || namaTopikFinal === "Umum") {
+      namaTopikFinal = "Tidak Ada Topik";
+    }
+
+    // Parsing data numerik presentase ke string visual
     let numConfidence = typeof aiData.tf_confidence === 'number' ? aiData.tf_confidence : parseFloat(aiData.tf_confidence || 0);
     if (numConfidence < 1 && numConfidence > 0) numConfidence = numConfidence * 100;
-    const formattedConfidence = `${numConfidence.toFixed(1)}%`;
+    const formattedConfidence = namaTopikFinal === "Tidak Ada Topik" ? "0.0%" : `${numConfidence.toFixed(1)}%`;
 
-    // Parsing skor kemiripan teks kueri RAG TiDB Vector
     let numSimilarity = typeof aiData.similarity_score === 'number' ? aiData.similarity_score : parseFloat(aiData.similarity_score || 0);
     if (numSimilarity < 1 && numSimilarity > 0) numSimilarity = numSimilarity * 100;
-    const formattedSimilarity = numSimilarity === 0 ? "85.00%" : `${numSimilarity.toFixed(2)}%`;
+    const formattedSimilarity = (numSimilarity === 0 || namaTopikFinal === "Tidak Ada Topik") ? "0.00%" : `${numSimilarity.toFixed(2)}%`;
 
-    // Menyimpan log obrolan yang bersih dan aman ke database Supabase
+    // Simpan log obrolan bersih sukses ke database Supabase Cloud
     console.log("⏳ [Supabase Insert] Menyimpan log obrolan sukses ke chatbot_history...");
     await chatbotRepository.saveChatMessage(user_id, pesan, balasanAI, {
-      topik: aiData.predicted_topic || topik || "Sains Umum", 
+      topik: namaTopikFinal,
       subtopik: aiData.subtopik || null,
-      konteks: aiData.question_matched || null,
-      jenis_pertanyaan: aiData.category || null, 
-      kompleksitas: formattedSimilarity 
+      konteks: aiData.question_matched || "normal",
+      jenis_pertanyaan: namaTopikFinal === "Tidak Ada Topik" ? "Luar Konteks" : (aiData.category || "Sains"),
+      kompleksitas: formattedSimilarity
     });
 
     return {
       type: "CHAT_TEXT",
       data: {
         text: balasanAI,
-        predicted_topic: aiData.predicted_topic || "Tidak terdeteksi",
+        predicted_topic: namaTopikFinal,
         tf_confidence: formattedConfidence,          
         similarity_score: formattedSimilarity       
       }
     };
 
   } catch (error) {
-    console.error("❌ [Chatbot Service Error Fallback]: Terjadi gangguan pada rute AI. Mengaktifkan proteksi lokal:", error.message);
-    
+    console.error("❌ [Chatbot Service Error Fallback]:", error.message);
     return {
       type: "CHAT_TEXT",
       data: {
-        text: `Halo Ilmuwan Cilik! 👋 Profesor Cerdas sedang merapikan laboratorium jurnal sains dulu. Yuk, coba ketik pertanyaan sains lainnya atau buka menu Misi Kuis terlebih dahulu! 🚀🔬`,
-        predicted_topic: "Sains Umum",
-        tf_confidence: "100%",
-        similarity_score: "85.00%"
+        text: `Halo Ilmuwan Cilik! 👋 Profesor Cerdas sedang merapikan laboratorium jurnal sains dulu. Yuk, coba ketik pertanyaan sains lainnya! 🚀🔬`,
+        predicted_topic: "Tidak Ada Topik",
+        tf_confidence: "0.0%",
+        similarity_score: "0.00%"
       }
     };
   }
@@ -105,6 +147,5 @@ export const getStudentChatHistory = async (userId) => {
   if (!userId) {
     throw new Error('ID Pengguna tidak valid untuk memuat riwayat.');
   }
-  console.log(`⛓️ [Chatbot Service] Meneruskan pencarian riwayat chat ke repositori untuk User: ${userId}`);
   return await chatbotRepository.getChatHistoryByUserId(userId);
 };

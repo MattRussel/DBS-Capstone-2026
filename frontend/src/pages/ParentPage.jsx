@@ -9,14 +9,14 @@ const ParentPage = () => {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Mengambil data profil anak dari localStorage hasil pendaftaran/masuk (Default ke ID 6 sesuai Supabase)
+  // Mengambil data profil anak dari localStorage hasil pendaftaran/masuk (Default ke ID 6)
   const studentId = localStorage.getItem('student_id') || 6;
   const studentName = localStorage.getItem('student_name') || 'Anak';
   
   // 📡 CONFIG URL API BACKEND EXPRESS KELOMPOKMU
   const BACKEND_API_URL = 'http://localhost:5000';
 
-  // Menyederhanakan label materi pelacak
+  // Menyederhanakan label materi pelacak jurnal kehadiran harian
   const goalLabels = { 
     'adaptasi makhluk hidup': '🐾 Adaptasi Makhluk Hidup',
     'adaptasi_makhluk_hidup': '🐾 Adaptasi Makhluk Hidup',
@@ -38,25 +38,18 @@ const ParentPage = () => {
     'bumi_peristiwa_alam': '🪐 Bumi & Peristiwa Alam',
     'air': '💧 Air & Siklus Hidrologi',
     'alat tubuh manusia dan hewan': '🦴 Alat Tubuh Manusia & Hewan',
-    'alat_tubuh_manusia_dan_hewan': '🦴 Alat Tubuh Manusia & Hewan',
-    'alat_tubuh_manusia_hewan': '🦴 Alat Tubuh Manusia & Hewan',
+    'alat_body_manusia_dan_hewan': '🦴 Alat Tubuh Manusia & Hewan',
     'tumbuhan hijau': '🌿 Tumbuhan Hijau & Fotosintesis',
     'tumbuhan_hijau': '🌿 Tumbuhan Hijau & Fotosintesis',
     'gaya, gerak, dan energi': '⚡ Gaya, Gerak, dan Energi',
-    'gaya,_gerak,_dan_energi': '⚡ Gaya, Gerak, dan Energi',
-    '"gaya, gerak, dan energi"': '⚡ Gaya, Gerak, dan Energi',
     'gaya_gerak_energi': '⚡ Gaya, Gerak, dan Energi',
     'cahaya dan sifat-sifatnya': '🔦 Cahaya & Sifat-Sifatnya',
-    'cahaya_dan_sifat-sifatnya': '🔦 Cahaya & Sifat-Sifatnya',
     'cahaya_sifatnya': '🔦 Cahaya & Sifat-Sifatnya',
     'alat pernapasan manusia dan hewan': '🌬️ Alat Pernapasan Manusia & Hewan',
-    'alat_path_manusia_dan_hewan': '🌬️ Alat Pernapasan Manusia & Hewan',
     'alat_pernapasan': '🌬️ Alat Pernapasan Manusia & Hewan',
     'organ tubuh manusia dan hewan': '🧬 Organ Tubuh Manusia & Hewan',
-    'organ_tubuh_manusia_dan_hewan': '🧬 Organ Tubuh Manusia & Hewan',
-    'organ_tubuh_manusia_hewan': '🧬 Organ Tubuh Manusia & Hewan',
-    'sistem pernapasan': '🫁 Sistem Pernapasan Manusia',
-    'sistem_pernapasan': '🫁 Sistem Pernapasan Manusia'
+    'sistem pernapasan': '𫠓 Sistem Pernapasan Manusia',
+    'sistem_pernapasan': '𫠓 Sistem Pernapasan Manusia'
   };
 
   useEffect(() => {
@@ -67,7 +60,7 @@ const ParentPage = () => {
       try {
         console.log(`📡 Menarik data Ruang Pantau dari Supabase untuk User ID: ${studentId}...`);
 
-        // 1. Ambil Data Kehadiran Utama dari Database Supabase
+        // 1. Ambil Data Kehadiran Utama (daily_checkins) dari Database Supabase
         let dbCheckIns = [];
         try {
           const checkInRes = await axios.get(`${BACKEND_API_URL}/api/checkin/history/${studentId}`);
@@ -114,17 +107,33 @@ const ParentPage = () => {
 
         setCheckInLogs(mappedLogs);
 
-        // 2. Ambil Data Chatbot untuk Sensor Kata Kotor (chatbot_history)
+        // 2. 🟢 AMBIL LANGSUNG DATA LOG PELANGGARAN HASIL COCOK DATASET KATA KASAR
         try {
           const chatbotRes = await axios.get(`${BACKEND_API_URL}/api/chatbot/history/${studentId}`);
           if (Array.isArray(chatbotRes.data)) {
-            const filteredWarnings = chatbotRes.data.filter(chat => 
-              chat.konteks && (
-                chat.konteks.toLowerCase().includes("peringatan") || 
-                chat.konteks.toLowerCase().includes("kasar") || 
-                chat.konteks.toLowerCase().includes("warning")
-              )
-            );
+            console.log("📡 Sinkronisasi otomatis data kecocokan kata kasar dari database...");
+            
+            // Menyaring data murni pelanggaran berdasarkan penanda topik / konteks moderasi dari Express
+            const filteredWarnings = chatbotRes.data.filter(chat => {
+              const konteksTeks = String(chat.konteks || '').toLowerCase();
+              const topikTeks = String(chat.topik || '').toLowerCase();
+              const jenisTeks = String(chat.jenis_pertanyaan || '').toLowerCase();
+              const responTeks = String(chat.bot_response || chat.bot_reply_text || '').toLowerCase();
+              
+              return (
+                konteksTeks.includes("peringatan") || 
+                konteksTeks.includes("kasar") || 
+                konteksTeks.includes("warning") ||
+                konteksTeks.includes("moderasi") ||
+                topikTeks.includes("peringatan") ||
+                topikTeks.includes("moderasi") ||
+                jenisTeks.includes("moderasi") ||
+                responTeks.includes("⚠️") ||
+                responTeks.includes("sopan") ||
+                responTeks.includes("kata-katanya") ||
+                responTeks.includes("istirahat dulu")
+              );
+            });
             setToxicWarnings(filteredWarnings);
           }
         } catch (e) {
@@ -187,7 +196,6 @@ const ParentPage = () => {
           </div>
         </div>
 
-        {/* 🟢 Menggunakan desain elatis anti-meluber dari image_5aff20.png */}
         <div className={`border p-6 rounded-[30px] shadow-sm flex items-center gap-4 transition-all flex-1 min-w-0 ${totalStrikes > 0 ? 'bg-[#FDE8DC] border-red-300 animate-pulse' : 'bg-white border-[#D6CFC4]'}`}>
           <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl border border-amber-100">
             ⚠️
@@ -199,7 +207,7 @@ const ParentPage = () => {
                 {totalStrikes}
               </span>
               <span className="text-xs sm:text-sm font-bold text-[#6B5C4E] truncate">
-                Pelanggaran
+                Pelanggaran Terdeteksi
               </span>
             </div>
           </div>
@@ -220,18 +228,35 @@ const ParentPage = () => {
               <p className="text-xs font-bold text-[#6B5C4E] px-4 leading-relaxed">Hebat! Belum ada catatan kata tidak sopan yang diketik anak di laboratorium sains Profesor. Belajar tetap aman! ✨</p>
             </div>
           ) : (
-            toxicWarnings.map((warning) => (
-              <div key={warning.id} className="p-4 bg-[#FAF7F2] border border-red-200 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-[#6B5C4E] font-black">
-                    {warning.created_at ? new Date(warning.created_at).toLocaleString('id-ID') : 'Waktu tidak tercatat'}
-                  </span>
-                  <span className="text-[10px] font-black bg-red-100 text-red-700 px-2 py-0.5 rounded-md border border-red-200">Terdeteksi</span>
+            toxicWarnings.map((warning) => {
+              const waktuMentah = warning.created_at || warning.timestamp || warning.tanggal || warning.created_time;
+              
+              const waktuFinal = waktuMentah 
+                ? new Date(waktuMentah).toLocaleString('id-ID', { 
+                    day: 'numeric', 
+                    month: 'numeric', 
+                    year: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  }) 
+                : new Date().toLocaleString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+              const balasanFinal = warning.bot_response || warning.bot_reply_text || warning.answer || 'Yuk gunakan bahasa yang lebih sopan ya 😊';
+
+              return (
+                <div key={warning.id || Math.random()} className="p-4 bg-[#FAF7F2] border border-red-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-[#6B5C4E] font-black">
+                      📅 {waktuFinal} WIB
+                    </span>
+                    <span className="text-[10px] font-black bg-red-100 text-red-700 px-2 py-0.5 rounded-md border border-red-200">Terdeteksi</span>
+                  </div>
+                  {/* Menampilkan secara otomatis teks kata kotor apa pun hasil tangkapan CSV tim AI */}
+                  <p className="text-sm font-bold text-[#2C1A0E]">Input anak: <span className="bg-red-600 text-white px-2 py-0.5 rounded-md font-mono">"{warning.message}"</span></p>
+                  <p className="text-xs font-semibold text-[#6B5C4E] italic bg-white/60 p-2 rounded-xl border border-[#D6CFC4]/40">📢 Respon Peringatan: "{balasanFinal}"</p>
                 </div>
-                <p className="text-sm font-bold text-[#2C1A0E]">Input anak: <span className="bg-red-600 text-white px-2 py-0.5 rounded-md font-mono">"{warning.message}"</span></p>
-                <p className="text-xs font-semibold text-[#6B5C4E] italic bg-white/60 p-2 rounded-xl border border-[#D6CFC4]/40">📢 Respon Peringatan: "{warning.bot_response}"</p>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

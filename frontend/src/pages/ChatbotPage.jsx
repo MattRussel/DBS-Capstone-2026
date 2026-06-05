@@ -150,23 +150,23 @@ const ChatbotPage = ({ session }) => {
 
       const result = await response.json();
 
-      // 🟢 PERBAIKAN INTEGRASI UTAMA: Pembongkaran Struktur Berlapis 'result.data.data'
+      // 🟢 KUNCI INTEGRASI: Pembongkaran Struktur Data yang Adaptif untuk Chat Reguler & Moderasi
       if (result.success && result.data) { 
         if (result.type === "CHAT_TEXT") {
           
-          // Masuk ke dalam bodi data murni keluaran service layer
+          // Ambil payload dari service layer Express kelompokmu
           const corePayload = result.data.data; 
 
-          // Ambil string teks balasan utama Profesor Cerdas
-          const botReplyText = corePayload?.text || 'Halo Ilmuwan Cilik! Profesor siap membantu kembali.';
+          // 🟢 FIX PENYEBAB BUG: Utamakan membaca properti root 'answer' yang disuntikkan controller
+          const botReplyText = result.data.answer || corePayload?.text || 'Halo Ilmuwan Cilik! Profesor siap membantu kembali.';
 
-          // Ekstrak tag visual secara presisi agar metadata kuis/RAG tidak bernilai null
+          // Ekstrak tag visual secara presisi agar metadata tidak bernilai null
           const botMessageObj = { 
             role: 'assistant', 
             content: botReplyText,
-            topicTag: corePayload?.predicted_topic || null,   
-            confidenceTag: corePayload?.tf_confidence || null, 
-            similarityTag: corePayload?.similarity_score || null 
+            topicTag: corePayload?.predicted_topic || result.data.predicted_topic || null,   
+            confidenceTag: corePayload?.tf_confidence || result.data.tf_confidence || null, 
+            similarityTag: corePayload?.similarity_score || result.data.similarity_score || null 
           };
 
           // Perbarui riwayat kontainer sesi obrolan aktif anak secara real-time
@@ -251,17 +251,25 @@ const ChatbotPage = ({ session }) => {
                 </div>
               );
             } else {
+              // 🟢 DYNAMIC LAYOUT: Berikan warna khusus Oranye Berkedip jika pesan bertanda '⚠️' (Peringatan Kata Kasar)
+              const isWarningMessage = msg.content.includes('⚠️') || msg.topicTag === 'Sistem Moderasi' || msg.topicTag === 'Sistem Peringatan';
+
               return (
                 <div key={index} className="flex gap-3 sm:gap-4 max-w-full sm:max-w-3xl items-start animate-fadeIn">
                   <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#7A8C5C] shrink-0 rounded-full flex items-center justify-center text-[#FAF7F2] font-black text-base mt-0.5 shadow-sm border border-[#D6CFC4]">P</div>
                   <div className="flex flex-col gap-2 w-full">
-                    <div className="bg-[#FAF7F2] border border-[#D6CFC4] px-5 py-3.5 rounded-3xl rounded-tl-xl shadow-sm">
-                      <p className="text-sm leading-relaxed text-[#2C1A0E] font-semibold whitespace-pre-line">
+                    <div className={`px-5 py-3.5 rounded-3xl rounded-tl-xl shadow-sm border ${
+                      isWarningMessage 
+                        ? 'bg-orange-50 border-orange-300 text-orange-900 animate-pulse' 
+                        : 'bg-[#FAF7F2] border-[#D6CFC4]'
+                    }`}>
+                      <p className="text-sm leading-relaxed font-semibold whitespace-pre-line">
                         {msg.content}
                       </p>
                     </div>
 
-                    {msg.topicTag && msg.topicTag !== "Tidak terdeteksi" && (
+                    {/* Sembunyikan tag sains jika topik murni masalah moderasi/di luar konteks */}
+                    {msg.topicTag && msg.topicTag !== "Tidak terdeteksi" && msg.topicTag !== "Tidak Ada Topik" && msg.topicTag !== "Sistem Moderasi" && msg.topicTag !== "Sistem Peringatan" && (
                       <div className="flex flex-col gap-1 ml-1 animate-fadeIn">
                         <div className="flex flex-wrap gap-1.5">
                           <span className="text-[10px] bg-[#2C1A0E] text-[#FAF7F2] font-black px-2.5 py-1 rounded-md shadow-xs tracking-wide">
@@ -276,13 +284,15 @@ const ChatbotPage = ({ session }) => {
                       </div>
                     )}
 
-                    {index > 0 && !(
-                      msg.content.includes('⚠️') || 
-                      msg.content.includes('Maaf, pertanyaan itu belum ada') || 
-                      msg.topicTag === 'Sistem Peringatan' || 
-                      msg.topicTag === 'Sistem Moderasi'
-                    
-
+                    {/* Tampilkan tag khusus hitam jika chat melosot ke luar topik sains */}
+                    {msg.topicTag === "Tidak Ada Topik" && (
+                      <div className="flex flex-col gap-1 ml-1 animate-fadeIn">
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="text-[10px] bg-neutral-800 text-neutral-100 font-black px-2.5 py-1 rounded-md shadow-xs tracking-wide">
+                            ❌ Luar Materi: {msg.topicTag} ({msg.confidenceTag || "0.0%"})
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -321,7 +331,6 @@ const ChatbotPage = ({ session }) => {
                 }`}
                 title="Kirim Pertanyaan"
               >
-                {/* Menggunakan warna ikon putih bersih agar kontras dengan latar belakang hijau */}
                 <svg 
                   className="w-5 h-5 text-white transform rotate-45 -translate-x-0.5 translate-y-0.5" 
                   fill="none" 
