@@ -3,11 +3,18 @@
 Sains Cerdas adalah aplikasi Chatbot interaktif yang dirancang khusus untuk membantu siswa Sekolah Dasar (SD) dalam belajar Ilmu Pengetahuan Alam (IPA). Aplikasi ini mengintegrasikan kecerdasan buatan (AI) modern untuk memberikan jawaban yang akurat, relevan, serta aman bagi anak-anak.
 
 Proyek ini dibangun sebagai bagian dari Capstone Project DBS 2026.
+## 📷 Tampilan Aplikasi
 
+<p align="center">
+  <img src="frontend/public/Perkenalan Sains Cerdas.png" alt="Cover Sains Cerdas" width="80%">
+</p>
+
+<p align="center">
+  <img src="frontend/public/mockup.png" alt="Mockup Aplikasi Sains Cerdas" width="80%">
+</p>
 ## 🚀 Fitur Utama
 
 - **🤖 AI Chatbot Cerdas:** Menggunakan model NLP (TensorFlow/Keras) untuk klasifikasi topik dan *Retrieval-Augmented Generation* (RAG) menggunakan TiDB Vector untuk pencarian jawaban berbasis *knowledge base*.
-- **🛡️ Sistem Moderasi Aman:** Dilengkapi filter kata kasar otomatis untuk menjaga interaksi anak-anak agar tetap positif dan edukatif.
 - **⏳ Screen Time Manager:** Memberikan pengingat otomatis jika anak telah belajar terlalu lama (20-30 menit) dan menyarankan aktivitas fisik agar mata tetap sehat.
 - **✨ UI/UX Ramah Anak:** Antarmuka responsif dan menarik menggunakan React, Vite, TailwindCSS, dan animasi interaktif dari Framer Motion.
 - **🔐 Keamanan & Autentikasi:** Dukungan autentikasi JWT pada sisi Backend Node.js.
@@ -109,11 +116,3 @@ Pastikan Anda telah menginstal beberapa alat berikut di sistem Anda sebelum menj
 Aplikasi web sekarang akan berjalan dan dapat diakses di browser Anda!
 
 ---
-
-## 📚 Lisensi
-
-Proyek ini dilisensikan di bawah lisensi ISC.
-
----
-
-*Dibuat untuk DBS Capstone 2026.*
