@@ -118,7 +118,7 @@ def clean_text_mod(text):
 def load_toxic_words(csv_path):
     words = set()
     try:
-        with open(csv_path, "r", encoding="utf-8-sig") as f:
+        with open(csv_path, "r", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 w = row.get("text", "").strip().lower()
                 if w:
@@ -133,16 +133,11 @@ class ModerationSystem:
 
     def __init__(self, toxic_csv="dataset/dataset_kata_kasar.csv"):
         self.toxic_phrases = load_toxic_words(toxic_csv)
-<<<<<<< HEAD
-        self.toxic_words = {
-            normalize_leet(w.strip())
-=======
         self.toxic_words   = {
             normalize_leet(w)
->>>>>>> 8add35d024a70cf190b50080cb7de5929717dcf6
             for p in self.toxic_phrases
             for w in p.split()
-            if len(normalize_leet(w.strip())) >= 3
+            if len(normalize_leet(w)) >= 3
         }
         self.sessions = {}
 
@@ -251,13 +246,8 @@ class ScreenTimeManager:
         if d >= 30 and not s["reminded_30"]:
             s["reminded_30"] = True
             r.update({
-<<<<<<< HEAD
-                "reminder": "Sudah 30 menit belajar! 🌟 Istirahat sebentar.",
-                "suggestion": random.choice(ACTIVITY_SUGGESTIONS),
-=======
                 "reminder":     "Sudah 30 menit belajar! 🌟 Istirahat sebentar ya.",
                 "suggestion":   random.choice(ACTIVITY_SUGGESTIONS),
->>>>>>> 8add35d024a70cf190b50080cb7de5929717dcf6
                 "should_break": True,
             })
         elif d >= 20 and not s["reminded_20"]:
@@ -403,18 +393,6 @@ def chat(req: ChatRequest):
     mod_result = moderator.check(req.message, req.session_id)
     if mod_result["status"] == "cooldown":
         return {
-<<<<<<< HEAD
-            "answer": mod_result.get("message"), # Mengambil pesan dinamis (Peringatan 1 / 2 / Cooldown)
-            "reply_message": mod_result.get("message"),
-            "response": mod_result.get("message"),
-            "category": "Moderasi",
-            "subtopik": status_mod, 
-            "predicted_topic": "Sistem Peringatan",
-            "tf_confidence": 0.0,
-            "similarity_score": 0.0,
-            "question_matched": f"Pelanggaran ke-{mod_result.get('strikes')}",
-            "moderation": mod_result # Menyertakan objek utuh (status, strikes, message) ke Express
-=======
             "answer":          mod_result["message"],
             "moderation":      mod_result,
             "category":        None,
@@ -422,7 +400,6 @@ def chat(req: ChatRequest):
             "tf_confidence":   0.0,
             "similarity_score": 0.0,
             "question_matched": None,
->>>>>>> 8add35d024a70cf190b50080cb7de5929717dcf6
         }
 
     # 2. Prediksi topik menggunakan model Keras (.predict aman)
